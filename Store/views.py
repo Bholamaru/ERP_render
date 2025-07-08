@@ -1038,3 +1038,20 @@ class JobworkInwardChallanDetailView(APIView):
                 "error": "An unexpected error occurred while deleting data.",
                 "details": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+# Purchase se po details get api
+from Purchase.models import NewJobWorkPoInfo
+from Purchase.serializers import NewJobWorkPoInfoSerializer
+
+class newjobworkpodetails(APIView):
+    def get(self, request):
+        supplier = request.query_params.get('supplier')
+        if not supplier:
+            return Response({"error": "supplier parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        pos = NewJobWorkPoInfo.objects.filter(Supplier__iexact=supplier)
+        serializer = NewJobWorkPoInfoSerializer(pos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

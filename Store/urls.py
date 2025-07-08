@@ -58,4 +58,5 @@ urlpatterns = [
     path('57F4_InwardChallan/<int:pk>/', InwardChallanDetailView.as_view(), name="Inward-Challan-Detail"),
     path('JobworkInwardChallan/', JobworkInwardChallanCreateView.as_view(), name="Jobwork-InwardChallan-CreateView"),
     path('JobworkInwardChallan/<int:pk>/', JobworkInwardChallanDetailView.as_view(), name="JobworkInward-ChallanDetail-View"),
+    path('newjobworkpodetails/',newjobworkpodetails.as_view()),
 ]

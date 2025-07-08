@@ -32,6 +32,11 @@ class vehicaldetailsview(viewsets.ModelViewSet):
 class outwardchallanview(viewsets.ModelViewSet):
     queryset=outwardchallan.objects.all()
     serializer_class=outwardchallanSerializer
+
+
+class OnwardChallanViewSet(viewsets.ModelViewSet):
+    queryset         = onwardchallan.objects.all()
+    serializer_class = OnwardChallanSerializer
     
 class deletechallan(APIView):
     def delete(self, request,id):

@@ -19,6 +19,7 @@ router.register(r'onwardchallan', OnwardChallanViewSet)
 router.register(r'transportdetails', transportdetailsview)
 router.register(r'vehicaldetails', vehicaldetailsview)
 router.register(r'outwardchallan',outwardchallanview)
+router.register(r'onward-challans', OnwardChallanViewSet, basename='onward-challan')
 
 urlpatterns=router.urls+[
     path("generate-challan-no/", generate_unique_challan_number.as_view(), name='generate-challan-no'),

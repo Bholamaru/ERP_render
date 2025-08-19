@@ -44,4 +44,14 @@ urlpatterns = [
     path('ScrapLineRejectionReport/', ScrapLineRejectionAPIView.as_view(), name='scrap-line-rejection-api'),
     path('product-details/bulk/', ProductDetailBulkCreateView.as_view(), name='product-detail-bulk'),
     path('api/get-product-details/', ProductDetailGetView.as_view(), name='get-product-details'),
+
+    path('api/item-dropdown/', ItemdropdownAPIView.as_view(), name='item-dropdown-search'),
+      # search this type -api/item-dropdown/?q=Steel part
+
+    path('api/bom-by-partcode/', BOMItemByPartCodeAPIView.as_view(), name='bom-by-partcode'),
+    #     #    Production/api/bom-by-partcode/?part_code=PC-001
+
+    path("api/grn/heat-numbers/", HeatNoListAPIView.as_view(), name="RM-stock-grn-heat-numbers"),
+    
+   
 ]

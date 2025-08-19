@@ -431,3 +431,89 @@ class JobWorkItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = SupplierItem
         fields = ['id', 'Name', 'number']
+
+
+from rest_framework import serializers
+from .models import PurchasePO, ItemDetail, GSTDetails
+
+class ItemDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemDetail
+        fields = '__all__'
+
+class GSTDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GSTDetails
+        fields = '__all__'
+
+class PurchasePOSerializer(serializers.ModelSerializer):
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    item_details = ItemDetailSerializer(source='Item_Detail_Enter', many=True, read_only=True)
+    gst_details = GSTDetailsSerializer(source='Gst_Details', many=True, read_only=True)
+    
+    class Meta:
+        model = PurchasePO
+        fields = [
+            'id', 'field', 'PoNo', 'EnquiryNo', 'Type', 'Plant', 'Series',
+            'Supplier', 'CodeNo', 'QuotNo', 'PaymentTerms', 'DeliveryDate',
+            'AMC_PO', 'ModeOfShipment', 'PreparedBy', 'PoNote', 'PoSpecification',
+            'PoDate', 'EnquiryDate', 'QuotDate', 'PaymentRemark', 'DeliveryType',
+            'DeliveryNote', 'IndentNo', 'ApprovedBy', 'InspectionTerms',
+            'PF_Charges', 'Time', 'PoFor', 'Freight', 'PoRateType',
+            'ContactPerson', 'PoValidityDate', 'PoEffectiveDate', 'TransportName',
+            'PoValidity_WarrantyTerm', 'GstTaxes', 'TOC_AssableValue',
+            'TOC_PackCharges', 'TOC_TransportCost', 'TOC_Insurance',
+            'TOC_InstallationCharges', 'TOC_CGST', 'TOC_SGST', 'TOC_IGST',
+            'TOC_VAT', 'TOC_CESS', 'TOC_TDS', 'GR_Total', 'created_by_username',
+            'is_verified', 'item_details', 'gst_details'
+        ]
+
+
+class QuotationComparisonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuotationComparison
+        fields = '_all_'
+
+class RFQSerializer(serializers.ModelSerializer):
+    rfq_type = serializers.ChoiceField(choices=RFQ.RFQ_TYPE_CHOICES)
+    item = serializers.ChoiceField(choices=RFQ.ITEM_TYPE_CHOICES)
+    unit = serializers.ChoiceField(choices=RFQ.UNIT_CHOICES)
+    class Meta:
+        model = RFQ
+        fields = [
+            'id',
+            'rfq_type',
+            'rfq_no',
+            'item',
+            'item_no',
+            'quantity',
+            'delivery_location',
+            'payment_term',
+            'delivery_schedule',
+            'to_date',
+            'indent_no',
+            'unit',
+            'quality_terms',
+            'remark_details',
+            'expected_date',
+            'project_name'
+        ]
+
+#new job work oreder iteam deta in out
+from rest_framework import serializers
+from All_Masters.models import BOMItem
+
+class BOMItemWithnewjobwork(serializers.ModelSerializer):
+    part_code = serializers.CharField(source='item.Part_Code', read_only=True)
+    part_no = serializers.CharField(source='item.part_no', read_only=True)
+    Name_Description = serializers.CharField(source='item.Name_Description', read_only=True)
+
+    class Meta:
+        model = BOMItem
+        fields = [
+            'id',      
+            'part_code',
+            'part_no',
+            'Name_Description',
+             'OPNo', 'Operation', 'PartCode','BOMPartType',
+        ]

@@ -2139,7 +2139,7 @@ class BOMDropdownAPIView(generics.ListAPIView):
     def get_queryset(self):
         item_id = self.kwargs.get('item_id')
         return BOM_ItemPartMaster.objects.filter(item_id=item_id)
-
+    
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -2171,3 +2171,60 @@ class BOMItemSimpleSearch(APIView):
             })
 
         return Response(data, status=status.HTTP_200_OK)
+
+
+from django.utils import timezone
+from weasyprint import HTML ,CSS
+def generate_bom_pdf(request, item_id):
+    item = get_object_or_404(ItemTable, pk=item_id)
+    bom_list = BOMItem.objects.filter(item=item)
+
+    context = {
+        'item': item,
+        'bom_list': bom_list,
+        'now': timezone.now(),
+    }
+
+    template = get_template('bom_details.html')
+    html_content = template.render(context)
+
+    pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf( stylesheets=[CSS(string='@page { size: A4 landscape; margin: 1cm; }')])
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="BOM_{item.Part_Code}.pdf"'
+    return response
+
+
+class BOMItemByPartCodeView(APIView):
+    def get(self, request):
+        grouped_data = {}
+        all_items = ItemTable.objects.all()
+
+        for item in all_items:
+            bom_items = BOMItem.objects.filter(item=item)
+            if not bom_items.exists():
+                continue
+
+            serializer = BOMItemSerializer(bom_items, many=True)
+            # instead of mapping to just the list of BOMItems,
+            # map to a dict with both the item.id and the serialized data
+
+
+            # grouped_data[item.Part_Code] = {
+            #     "item_id": item.id,
+            #     "bom_items": serializer.data
+            # }
+
+            grouped_data[f"{item.Part_Code} - {item.Name_Description} - {item.part_no}"] = {
+                "item_id": item.id,
+                "bom_items": serializer.data
+             }
+
+        if not grouped_data:
+            return Response(
+                {"message": "No BOM data found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        return Response(grouped_data, status=status.HTTP_200_OK)
+

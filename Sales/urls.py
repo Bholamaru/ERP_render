@@ -32,5 +32,6 @@ urlpatterns=router.urls+[
    path('inwardchallanview/',inwardchallanview.as_view(),name='inwardchallanview'),
 #    /sales/inwardchallanview/?supplier=SUPPLIER_NAME
 #    path('inward/', views.inward, name='inward'),
-    path('supplierview/',supplierview.as_view(),name='onwardchallandetails-by-supplier')
+    path('supplierview/',supplierview.as_view(),name='onwardchallandetails-by-supplier'),
+    path('onwardchallan/pdf/<int:pk>/', views.generate_onwardchallan_pdf,name='pdf'),
 ]

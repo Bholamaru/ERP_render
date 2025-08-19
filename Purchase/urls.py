@@ -7,8 +7,10 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 router.register(r'indents', IndentViewSet, basename='indent')
 router.register(r'NewJobWorkPO', NewJobWorkPoInfoViewSet)
+router.register(r'QuotationComparison',QuotationComparisonViewSet)
+router.register(r'RFQ',RFQViewSet)
 
-urlpatterns = [
+urlpatterns = router.urls + [ 
     path('api/', include(router.urls)),
     path('ItemDetail/', ItemDetailListCreate.as_view(), name='ItemDetail-retrieve-list-create'),
     path('ItemDetail/<int:pk>/', ItemDetailRetrieveUpdateDestroy.as_view(), name='ItemDetail-retrieve-update-destroy'),
@@ -58,4 +60,15 @@ urlpatterns = [
     path('purchase-order/pdf/<int:pk>/', generate_po_pdf, name='generate_po_pdf'),
     path('JobWorkPOList/', NewJobWorkPoInfoAPIView.as_view(), name='new_job_work_po_info_api'),
     path('SuppilerJobWorkPoFetch/', JobWorkItemSearchView.as_view(), name='job-work-items'),
+    path('purchase-orders/unverified/', views.get_unverified_purchase_orders, name='unverified_purchase_orders'),
+    path('purchase-orders/all/', views.get_purchase_orders, name='purchase_orders_all'),
+    path('purchase-orders/unverified/simple/', views.get_unverified_purchase_orders_simple, name='unverified_purchase_orders_simple'),
+    path('purchase-po/<int:po_id>/update-status-fbv/', views.update_approved_status, name='update_approved_status_fbv'),
+    path('all-indents/', views.get_indents, name='indents_all'),
+    path('pending-indents/', views.get_pending_indents, name='pending_auth_indents_fbv'),
+    path('indents/update-auth/', views.update_indent_auth_status, name='update_indent_auth'),
+    path('QuotationComparison/delete/<int:pk>/', DeleteQuotationComparison.as_view(), name='quotationcomparison-delete'),
+    path('QuotationComparison/edit/<int:pk>/', EditQuotationComparison.as_view(), name='quotationcomparison-edit'),
+    path('GenrateRFQ/',generate_unique_rfq_no.as_view(),name='gererate_unique_rfq_no'),
+    path('new-jobwork-item/', newjobworkitemdata.as_view(), name='new-jobwork-item'),
 ]

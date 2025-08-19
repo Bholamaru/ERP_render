@@ -912,6 +912,7 @@ class BOMDropdownSerializer(serializers.ModelSerializer):
         fields = ['Operation', 'PartCode']
 
 
+
 # serializers.py
 from rest_framework import serializers
 from .models import BOMItem
@@ -933,3 +934,4 @@ class BOMItemSerializer5(serializers.ModelSerializer):
 
     def get_BomPartCode(self, obj):
         return f"{obj.BomPartCode} | {obj.PartCode} | Steel part"
+    

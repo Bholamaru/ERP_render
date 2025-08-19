@@ -175,4 +175,7 @@ urlpatterns = [
     path('api/item/<int:item_id>/bom/<int:pk>/', BOM_ItemPartMaster_RetrieveUpdateDestroy.as_view(), name='bom-detail'),
     path('api/item/<int:item_id>/bom/dropdown/', BOMDropdownAPIView.as_view(), name='bom-dropdown'),
     path('bom/simple-search/<int:item_id>/', BOMItemSimpleSearch.as_view(), name='simple-search'),
+    path("api/bom_pdf/<int:item_id>/",views.generate_bom_pdf,name='generate_bom_pdf'),
+    path('api/bom-items/', BOMItemByPartCodeView.as_view(), name='bom-items-by-part-code'),
+
 ]

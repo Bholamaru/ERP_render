@@ -53,6 +53,32 @@ class GeneralDetailsSerializer(serializers.ModelSerializer):
 
         return instance
 
+from rest_framework import serializers
+from .models import GrnGenralDetail, NewGrnList, GrnGst, GrnGstTDC
+
+class NewGrnListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewGrnList
+        fields = '__all__'
+
+class GrnGstSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GrnGst
+        fields = '__all__'
+
+class GrnGstTDCSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GrnGstTDC
+        fields = '__all__'
+
+class GrnGenralDetailSerializer(serializers.ModelSerializer):
+    grn_items = NewGrnListSerializer(source='NewGrnList', many=True, read_only=True)
+    grn_gst = GrnGstSerializer(source='GrnGst', many=True, read_only=True)
+    grn_tdc = GrnGstTDCSerializer(source='GrnGstTDC', many=True, read_only=True)
+    
+    class Meta:
+        model = GrnGenralDetail
+        fields = '__all__'
 
 
 # Store Module:- NEW MRN
@@ -575,3 +601,101 @@ class JobworkInwardChallanSerializer(serializers.ModelSerializer):
                 JobworkInwardChallanTable.objects.create(JobworkInwardChallanDetail=instance, **item_data)
 
         return instance
+    
+
+from rest_framework import serializers
+from .models import FGMovement
+
+class FGMovementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FGMovement
+        fields = [
+            'id', 'trn_no', 'date', 'fg_item_code', 'fg_item_name', 
+            'fg_item_description', 'operation', 'ok_qty', 'rework_qty', 
+            'reject_qty', 'heat_code', 'stock_view', 'remark',
+            'created_by', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'trn_no', 'created_at', 'updated_at']
+    
+    def create(self, validated_data):
+        # Set the created_by field to the current user
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+from All_Masters.models import BOMItem
+from Production.models import ProductionEntry
+
+# class WipSerializer(serializers.ModelSerializer):
+#     # item_part_code = serializers.CharField(source='item.Part_Code', read_only=True)
+#     part_code=serializers.CharField(source='item.Part_Code', read_only=True)
+#     Name_Description = serializers.CharField(source='item.Name_Description', read_only=True)
+#     part_no=serializers.CharField(source='item.part_no',read_only=True)
+#     rework_qty = serializers.SerializerMethodField()
+#     reject_qty = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model= BOMItem
+#         fields=['part_code','part_no','Name_Description','OPNo','Operation','PartCode','rework_qty',
+#             'reject_qty','WipWt','WipRate']
+        
+#     def get_rework_qty(self, obj):
+#         # Match based on item.Part_Code and Operation
+#         part_code = obj.item.Part_Code
+#         operation = obj.Operation
+#         entries = ProductionEntry.objects.filter(item=part_code, operation=operation)
+
+#         total = sum(int(e.rework_qty or 0) for e in entries)
+#         return total
+
+#     def get_reject_qty(self, obj):
+#         part_code = obj.item.Part_Code
+#         operation = obj.Operation
+#         entries = ProductionEntry.objects.filter(item=part_code, operation=operation)
+
+#         total = sum(int(e.reject_qty or 0) for e in entries)
+#         return total
+
+class WipSerializer(serializers.ModelSerializer):
+    part_code = serializers.CharField(source='item.Part_Code', read_only=True)
+    Name_Description = serializers.CharField(source='item.Name_Description', read_only=True)
+    part_no = serializers.CharField(source='item.part_no', read_only=True)
+    rework_qty = serializers.SerializerMethodField()
+    reject_qty = serializers.SerializerMethodField()
+    total_rework_qty = serializers.SerializerMethodField()  # ✅ new field
+    total_reject_qty = serializers.SerializerMethodField()  # ✅ optional
+
+    class Meta:
+        model = BOMItem
+        fields = [
+            'part_code', 'part_no', 'Name_Description',
+            'OPNo', 'Operation', 'PartCode',
+            'rework_qty', 'reject_qty',
+            'total_rework_qty', 'total_reject_qty',
+            'WipWt', 'WipRate'
+        ]
+
+    def get_rework_qty(self, obj):
+        part_code = obj.item.Part_Code
+        operation = obj.Operation
+        entries = ProductionEntry.objects.filter(item=part_code, operation=operation)
+
+        return sum(int(e.rework_qty or 0) for e in entries)
+
+    def get_reject_qty(self, obj):
+        part_code = obj.item.Part_Code
+        operation = obj.Operation
+        entries = ProductionEntry.objects.filter(item=part_code, operation=operation)
+
+        return sum(int(e.reject_qty or 0) for e in entries)
+
+    def get_total_rework_qty(self, obj):
+        part_code = obj.item.Part_Code
+        entries = ProductionEntry.objects.filter(item=part_code)
+
+        return sum(int(e.rework_qty or 0) for e in entries)
+
+    def get_total_reject_qty(self, obj):
+        part_code = obj.item.Part_Code
+        entries = ProductionEntry.objects.filter(item=part_code)
+        return sum(int(e.reject_qty or 0) for e in entries)

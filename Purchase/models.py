@@ -436,8 +436,14 @@ class PurchasePO(models.Model):
     TOC_TDS = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     GR_Total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
+    AprrovedStatusChoices = [
+        ('Approved', 'approved'),
+        ('Pending', 'pending'),
+        ('Rejected', 'reject')
+    ]
+    Approved_Status = models.CharField(choices=AprrovedStatusChoices, max_length=10, default='pending')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    is_verified = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=False)
 
     
 
@@ -447,7 +453,7 @@ class PurchasePO(models.Model):
 
 
 class Item(models.Model):
-    purchase_order = models.ForeignKey(PurchasePO, related_name='items', on_delete=models.CASCADE)
+    # purchase_order = models.ForeignKey(PurchasePO, related_name='items', on_delete=models.CASCADE)
     item_code = models.CharField(max_length=50)
     description = models.CharField(max_length=255)
     quantity = models.IntegerField()
@@ -511,7 +517,7 @@ class ItemTransaction2(models.Model):
     ItemDescription = models.CharField(max_length=255)
     PartCode = models.CharField(max_length=100)
     Out = models.DecimalField(max_digits=10, decimal_places=2)
-    Inn = models.DecimalField(max_digits=10, decimal_places=2)
+    Inn = models.DecimalField(max_digits=10, decimal_places=2)    
     Rate = models.DecimalField(max_digits=10, decimal_places=2)
     RType = models.CharField(max_length=50)
     Disc = models.DecimalField(max_digits=5, decimal_places=2)
@@ -523,6 +529,7 @@ class ItemTransaction2(models.Model):
 # New JobWork Purchase Order
 
 class NewJobWorkItemDetails(models.Model):
+    purchase_order = models.ForeignKey(PurchasePO, related_name='items', on_delete=models.CASCADE, null=True)
     ItemName = models.CharField(max_length=100, blank=True, null=True)
     ItemDescription = models.CharField(max_length=100, blank=True, null=True)
     OutAndInPart = models.CharField(max_length=100, blank=True, null=True)
@@ -611,3 +618,77 @@ class NewJobWorkPoInfo(models.Model):
      
     def __str__(self):
         return self.PoNo or "Unnamed PO"
+    
+class QuotationComparison(models.Model):
+    select_RFQ = models.CharField(max_length=50, blank=True, null=True)
+    item = models.CharField(max_length=20, blank=True, null=True)
+    make = models.CharField(max_length=50, blank=True, null=True)
+    minimum_purchase_quantity = models.IntegerField(blank=True, null=True)
+    other_charges = models.IntegerField(blank=True, null=True)
+    payment_terms = models.CharField(max_length=20, blank=True, null=True)
+    date = models.DateField(blank=True, null=True)
+    supplier = models.CharField(max_length=50, blank=True, null=True)
+    uom = models.CharField(max_length=20, blank=True, null=True)
+    tax_applicable = models.CharField(max_length=50, blank=True, null=True)
+    remark_details = models.CharField(max_length=100, blank=True, null=True)
+    supplier_quote_no = models.CharField(max_length=20, blank=True, null=True)
+    basic_rate = models.IntegerField(blank=True, null=True)
+    delivery_mode = models.CharField(max_length=20, blank=True, null=True)
+    quote_date = models.DateField(blank=True, null=True)
+    discount = models.IntegerField(blank=True, null=True)
+    delivery_time = models.TimeField(blank=True, null=True)
+
+    def _str_(self):
+        return self.supplier 
+
+    
+
+
+class RFQ(models.Model):
+    RFQ_TYPE_CHOICES = [
+        ('single', 'For Single'),
+        ('enquiry', 'Against Enquiry'),
+    ]
+    UNIT_CHOICES = [
+    ('PCS', 'PCS'),
+    ('KGS', 'KGS'),
+    ('Box', 'Box'),
+    ('LTR', 'LTR'),
+    ('NOS', 'NOS'),
+    ('SQFT', 'SQFT'),
+    ('MTR', 'MTR'),
+    ('FOOT', 'FOOT'),
+    ('SQMTR', 'SQMTR'),
+    ('PAIR', 'PAIR'),
+    ('BAG', 'BAG'),
+    ('PACKET', 'PACKET'),
+    ('RIM', 'RIM'),
+    ('SET', 'SET'),
+    ('MT', 'MT'),
+    ('PER DAY', 'PER DAY'),
+    ('DOZEN', 'DOZEN'),
+    ('JOB', 'JOB'),
+    ('SQUINCH', 'SQUINCH'),]
+
+    rfq_type = models.CharField(max_length=10,choices=RFQ_TYPE_CHOICES )
+    rfq_no = models.CharField(max_length=50, unique=True,blank=True,null=True)
+    ITEM_TYPE_CHOICES = [
+        ('new', 'New'),
+        ('existing', 'Existing'),
+    ]
+    item = models.CharField(max_length=10,choices=ITEM_TYPE_CHOICES)
+    item_no = models.CharField(max_length=50)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    delivery_location = models.TextField()
+    payment_term = models.TextField()
+    delivery_schedule = models.TextField()
+    to_date = models.DateField()
+    indent_no = models.CharField(max_length=50, blank=True, null=True)
+    unit = models.CharField(max_length=50,choices=UNIT_CHOICES)
+    quality_terms = models.TextField()
+    remark_details = models.TextField(blank=True, null=True)
+    expected_date = models.DateField(blank=True, null=True)
+    project_name=models.CharField(max_length=50,blank=True) 
+
+    def _str_(self):
+        return f"RFQ {self.rfq_no}"

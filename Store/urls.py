@@ -1,6 +1,7 @@
 from django.urls import path, include
 from .views import *
 from rest_framework.routers import DefaultRouter
+from . import views
 
 
 router = DefaultRouter()
@@ -58,5 +59,22 @@ urlpatterns = [
     path('57F4_InwardChallan/<int:pk>/', InwardChallanDetailView.as_view(), name="Inward-Challan-Detail"),
     path('JobworkInwardChallan/', JobworkInwardChallanCreateView.as_view(), name="Jobwork-InwardChallan-CreateView"),
     path('JobworkInwardChallan/<int:pk>/', JobworkInwardChallanDetailView.as_view(), name="JobworkInward-ChallanDetail-View"),
-    path('newjobworkpodetails/',newjobworkpodetails.as_view()),
+    path('newjobworkpodetails/',get_purchase_orders_by_supplier, name='purchase-orders-by-supplier'),
+    path('mrns/pending/', views.PendingMrnListView.as_view(), name='pending-mrns'),
+    path('mrns/pending_mrn', views.get_pending_mrns, name='get_pending_mrn'),
+    path('InwardChallan/pdf/<int:pk>/', generate_inwardchallan_pdf, name='pdf'),
+    path('grn/heat-numbers/', views.get_grn_heat_numbers, name='get_grn_heat_numbers'),
+    path('fg-movement/create/', views.create_fg_movement, name='create-fg-movement'),
+    path('fg-movement/list/', views.get_fg_movements, name='get-fg-movements'),
+    path('fg-movement/<int:movement_id>/', views.get_fg_movement_by_id, name='get-fg-movement-by-id'),
+    path('fg-movement/<int:movement_id>/update/', views.update_fg_movement, name='update-fg-movement'),
+    path('fg-movement/<int:movement_id>/delete/', views.delete_fg_movement, name='delete-fg-movement'),
+    path('grn-calculation/<str:pono>/', GRNQuantityCalculation.as_view()),
+    path('grn-calculation/', GRNQuantityByMultiplePOs.as_view()),
+    path('api/grn/items/', views.get_grn_data, name='get_grn_data'),
+    path('api/grn/items/<int:grn_id>/', views.get_grn_data, name='get_grn_data_by_id'),
+    path('api/grn/summary/<int:grn_id>/', views.get_grn_summary, name='get_grn_summary'),
+
+    path('api/WIPstockreport/',WIPStockreport.as_view(),name='WIP-stock-report'),
+         # Store/api/WIPstockreport/?q=PC-001
 ]

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User 
+from Sales.models import OnwardChallanItem
 
 # Store Module:- Gate Inward Entry:- General Details
 class GeneralDetails(models.Model):
@@ -22,6 +23,7 @@ class GeneralDetails(models.Model):
     LrNo = models.CharField(max_length=255, blank=True, null=True)
     Transporter = models.CharField(max_length=255, blank=True, null=True)
     Remark = models.CharField(max_length=255, blank=True, null=True)
+    po_reference = models.CharField(max_length=50, blank=True, null=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
@@ -39,7 +41,7 @@ class ItemDetails(models.Model):
 
 
     def __str__(self):
-        return f"{self.SelectItem} - {self.SelectItem}"
+        return f"{self.ItemNo} - {self.Description}"
 
 # Store Module:- NEW MRN
 class NewMrn(models.Model):
@@ -61,6 +63,12 @@ class NewMrn(models.Model):
     MRN_date = models.CharField(max_length=255, blank=True, null=True)
     MRN_time = models.CharField(max_length=255, blank=True, null=True)
     Remark_2 = models.CharField(max_length=255, blank=True, null=True)
+    Approve_choices =[
+        ('Approved', 'approved'),
+        ('Pending', 'pending'),
+        ('Rejected', 'rejected')
+    ]
+    Approve_status = models.CharField(choices=Approve_choices, default='pending',max_length=255)
 
     def __str__(self):
         return f"{self.ItemCode} - {self.ItemCode}"
@@ -82,6 +90,7 @@ class NewMRNTable(models.Model):
 
 # Store Module:- Purchase GRN: General Details
 class GrnGenralDetail(models.Model):
+    item = models.ForeignKey(OnwardChallanItem, on_delete=models.CASCADE, related_name='grndetails',null=True,)
     Plant = models.CharField(max_length=255, blank=True, null=True)
     Series = models.CharField(max_length=255, blank=True, null=True)
     GateEntryNo = models.CharField(max_length=255, blank=True, null=True)
@@ -91,7 +100,7 @@ class GrnGenralDetail(models.Model):
     SelectItem = models.CharField(max_length=255, blank=True, null=True)
     ItemDropdown = models.CharField(max_length=255, blank=True, null=True)
     HeatNo = models.CharField(max_length=255, blank=True, null=True)
-    
+        
     GrnNo = models.CharField(max_length=255, blank=True, null=True)
     GrnDate = models.CharField(max_length=255, blank=True, null=True)
     GrnTime = models.CharField(max_length=255, blank=True, null=True)
@@ -629,3 +638,58 @@ class JobworkInwardChallanTable(models.Model):
 
     def __str__(self):
         return self.ItemCode 
+    
+
+# models.py
+from django.db import models
+from django.utils import timezone
+
+class FGMovement(models.Model):
+    # Transaction details
+    trn_no = models.CharField(max_length=50, unique=True, blank=True)
+    date = models.DateField(default=timezone.now)
+    
+    # Item details
+    fg_item_code = models.CharField(max_length=100)
+    fg_item_name = models.CharField(max_length=255)
+    fg_item_description = models.TextField(blank=True)
+    
+    # Operation details
+    operation = models.CharField(max_length=100, blank=True)
+    
+    # Quantities
+    ok_qty = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    rework_qty = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    reject_qty = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    
+    # Additional details
+    heat_code = models.CharField(max_length=50, blank=True)
+    stock_view = models.CharField(max_length=50, default='All')
+    remark = models.TextField(blank=True)
+    
+    # System fields
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'fg_movement'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"FG Movement {self.trn_no} - {self.fg_item_code}"
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate transaction number if not provided
+        if not self.trn_no:
+            last_movement = FGMovement.objects.filter(
+                trn_no__startswith='FGM'
+            ).order_by('-id').first()
+            
+            if last_movement:
+                last_num = int(last_movement.trn_no.replace('FGM', ''))
+                self.trn_no = f'FGM{last_num + 1:06d}'
+            else:
+                self.trn_no = 'FGM000001'
+        
+        super().save(*args, **kwargs)

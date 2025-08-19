@@ -1254,6 +1254,7 @@ class IndentDetailAPIView(generics.ListAPIView):
         queryset = self.get_queryset()
         data = []
         for indent in queryset:
+            print(indent)
             indent_items = indent.New_Indent.all()  # Related items
             items_data = [
                 {
@@ -1567,3 +1568,606 @@ class JobWorkItemSearchView(generics.ListAPIView):
     queryset = SupplierItem.objects.filter(type='Job Work')
     filter_backends = [filters.SearchFilter]
     search_fields = ['Name', 'number']
+
+
+
+# get route to fetch the unverified PO's
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.http import JsonResponse
+from .models import PurchasePO
+from .serializers import PurchasePOSerializer
+
+
+@api_view(['GET'])
+def get_purchase_orders(request):
+    """
+    Simple API endpoint to get unverified purchase orders with item details
+    """
+    try:
+        unverified_pos = PurchasePO.objects.all()
+        
+        po_data = []
+        for po in unverified_pos:
+            # Get item details for this purchase order
+            item_details = []
+            for item in po.Item_Detail_Enter.all():
+                item_details.append({
+                    'id': item.id,
+                    'Item': item.Item,
+                    'ItemDescription': item.ItemDescription,
+                    'ItemSize': item.ItemSize,
+                    'Rate': item.Rate,
+                    'Disc': item.Disc,
+                    'Qty': item.Qty,
+                    'Unit': item.Unit,
+                    'Particular': item.Particular,
+                    'Mill_Name': item.Mill_Name,
+                    'DeliveryDt': item.DeliveryDt.strftime('%Y-%m-%d') if item.DeliveryDt else None
+                })
+            
+            # Get GST details for this purchase order
+            gst_details = []
+            for gst in po.Gst_Details.all():
+                gst_details.append({
+                    'id': gst.id,
+                    'ItemCode': gst.ItemCode,
+                    'HSN': gst.HSN,
+                    'Rate': float(gst.Rate) if gst.Rate else None,
+                    'Qty': gst.Qty,
+                    'SubTotal': float(gst.SubTotal) if gst.SubTotal else None,
+                    'Discount': float(gst.Discount) if gst.Discount else None,
+                    'Packing': float(gst.Packing) if gst.Packing else None,
+                    'Transport': float(gst.Transport) if gst.Transport else None,
+                    'ToolAmort': float(gst.ToolAmort) if gst.ToolAmort else None,
+                    'AssValue': float(gst.AssValue) if gst.AssValue else None,
+                    'CGST': float(gst.CGST) if gst.CGST else None,
+                    'SGST': float(gst.SGST) if gst.SGST else None,
+                    'IGST': float(gst.IGST) if gst.IGST else None,
+                    'Vat': float(gst.Vat) if gst.Vat else None,
+                    'Cess': float(gst.Cess) if gst.Cess else None,
+                    'Total': float(gst.Total) if gst.Total else None
+                })
+            
+            # Build purchase order data with item details
+            po_data.append({
+                'id': po.id,
+                'field': po.field,
+                'PoNo': po.PoNo,
+                'EnquiryNo': po.EnquiryNo,
+                'Type': po.Type,
+                'Plant': po.Plant,
+                'Series': po.Series,
+                'Supplier': po.Supplier,
+                'CodeNo': po.CodeNo,
+                'QuotNo': po.QuotNo,
+                'PaymentTerms': po.PaymentTerms,
+                'DeliveryDate': po.DeliveryDate.strftime('%Y-%m-%d') if po.DeliveryDate else None,
+                'PoDate': po.PoDate.strftime('%Y-%m-%d') if po.PoDate else None,
+                'PreparedBy': po.PreparedBy,
+                'Approved_status' : po.Approved_Status,
+                'ApprovedBy': po.ApprovedBy,
+                'GR_Total': float(po.GR_Total) if po.GR_Total else None,
+                'is_verified': po.is_verified,
+                'created_by_username': po.created_by.username if po.created_by else None,
+                'ContactPerson': po.ContactPerson,
+                'PoNote': po.PoNote,
+                'Freight': po.Freight,
+                'PoRateType': po.PoRateType,
+                'GstTaxes': po.GstTaxes,
+                # Item details
+                'item_details': item_details,
+                'item_count': len(item_details),
+                # GST details
+                'gst_details': gst_details,
+                'gst_count': len(gst_details)
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Found {len(po_data)} unverified purchase orders with item details',
+            'count': len(po_data),
+            'data': po_data
+        }, status=200)
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error fetching unverified purchase orders: {str(e)}',
+            'data': []
+        }, status=500)
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Remove this if authentication is not required
+def get_unverified_purchase_orders(request):
+    """
+    API endpoint to get all purchase orders that are not verified (is_verified=False)
+    """
+    try:
+        # Filter purchase orders where is_verified is False
+        unverified_pos = PurchasePO.objects.filter(is_verified=False)
+        
+        # Serialize the data
+        serializer = PurchasePOSerializer(unverified_pos, many=True)
+        
+        return Response({
+            'success': True,
+            'message': f'Found {unverified_pos.count()} unverified purchase orders',
+            'count': unverified_pos.count(),
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error fetching unverified purchase orders: {str(e)}',
+            'data': []
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# Alternative simpler version without DRF serializers
+@api_view(['GET'])
+def get_unverified_purchase_orders_simple(request):
+    """
+    Simple API endpoint to get unverified purchase orders with item details
+    """
+    try:
+        unverified_pos = PurchasePO.objects.filter(Approved_Status__in=['pending', 'Pending']).select_related('created_by').prefetch_related('Item_Detail_Enter', 'Gst_Details')
+        
+        po_data = []
+        for po in unverified_pos:
+            # Get item details for this purchase order
+            item_details = []
+            for item in po.Item_Detail_Enter.all():
+                item_details.append({
+                    'id': item.id,
+                    'Item': item.Item,
+                    'ItemDescription': item.ItemDescription,
+                    'ItemSize': item.ItemSize,
+                    'Rate': item.Rate,
+                    'Disc': item.Disc,
+                    'Qty': item.Qty,
+                    'Unit': item.Unit,
+                    'Particular': item.Particular,
+                    'Mill_Name': item.Mill_Name,
+                    'DeliveryDt': item.DeliveryDt.strftime('%Y-%m-%d') if item.DeliveryDt else None
+                })
+            
+            # Get GST details for this purchase order
+            gst_details = []
+            for gst in po.Gst_Details.all():
+                gst_details.append({
+                    'id': gst.id,
+                    'ItemCode': gst.ItemCode,
+                    'HSN': gst.HSN,
+                    'Rate': float(gst.Rate) if gst.Rate else None,
+                    'Qty': gst.Qty,
+                    'SubTotal': float(gst.SubTotal) if gst.SubTotal else None,
+                    'Discount': float(gst.Discount) if gst.Discount else None,
+                    'Packing': float(gst.Packing) if gst.Packing else None,
+                    'Transport': float(gst.Transport) if gst.Transport else None,
+                    'ToolAmort': float(gst.ToolAmort) if gst.ToolAmort else None,
+                    'AssValue': float(gst.AssValue) if gst.AssValue else None,
+                    'CGST': float(gst.CGST) if gst.CGST else None,
+                    'SGST': float(gst.SGST) if gst.SGST else None,
+                    'IGST': float(gst.IGST) if gst.IGST else None,
+                    'Vat': float(gst.Vat) if gst.Vat else None,
+                    'Cess': float(gst.Cess) if gst.Cess else None,
+                    'Total': float(gst.Total) if gst.Total else None
+                })
+            
+            # Build purchase order data with item details
+            po_data.append({
+                'id': po.id,
+                'field': po.field,
+                'PoNo': po.PoNo,
+                'EnquiryNo': po.EnquiryNo,
+                'Type': po.Type,
+                'Plant': po.Plant,
+                'Series': po.Series,
+                'Supplier': po.Supplier,
+                'CodeNo': po.CodeNo,
+                'QuotNo': po.QuotNo,
+                'PaymentTerms': po.PaymentTerms,
+                'DeliveryDate': po.DeliveryDate.strftime('%Y-%m-%d') if po.DeliveryDate else None,
+                'PoDate': po.PoDate.strftime('%Y-%m-%d') if po.PoDate else None,
+                'PreparedBy': po.PreparedBy,
+                'ApprovedBy': po.ApprovedBy,
+                'GR_Total': float(po.GR_Total) if po.GR_Total else None,
+                'is_verified': po.is_verified,
+                'created_by_username': po.created_by.username if po.created_by else None,
+                'ContactPerson': po.ContactPerson,
+                'PoNote': po.PoNote,
+                'Freight': po.Freight,
+                'PoRateType': po.PoRateType,
+                'GstTaxes': po.GstTaxes,
+                # Item details
+                'item_details': item_details,
+                'item_count': len(item_details),
+                # GST details
+                'gst_details': gst_details,
+                'gst_count': len(gst_details)
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Found {len(po_data)} unverified purchase orders with item details',
+            'count': len(po_data),
+            'data': po_data
+        }, status=200)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error fetching unverified purchase orders: {str(e)}',
+            'data': []
+        }, status=500)
+
+
+
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.views import View
+import json
+from .models import PurchasePO
+
+@csrf_exempt
+@require_http_methods(["POST"])
+# @login_required
+def update_approved_status(request, po_id):
+    """
+    Function-based view to update approved status
+    """
+    try:
+        # Get the PurchasePO object
+        purchase_po = get_object_or_404(PurchasePO, id=po_id)
+        
+        # Parse JSON data from request body
+        data = json.loads(request.body)
+        new_status = data.get('approved_status')
+        
+        # Validate the new status
+        valid_statuses = ['Approved', 'Pending', 'Rejected']
+        if new_status not in valid_statuses:
+            return JsonResponse({
+                'success': False,
+                'message': f'Invalid status. Must be one of: {valid_statuses}'
+            }, status=400)
+        
+        # Update the approved status
+        old_status = purchase_po.Approved_Status
+        purchase_po.Approved_Status = new_status
+        purchase_po.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Approved status updated successfully',
+            'data': {
+                'po_id': purchase_po.id,
+                'po_no': purchase_po.PoNo,
+                'old_status': old_status,
+                'new_status': purchase_po.Approved_Status,
+                'updated_by': request.user.username
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid JSON data'
+        }, status=400)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }, status=500)
+
+
+
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.core.serializers import serialize
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from .models import Indent, New_Indent
+import json
+
+# Function-based view
+
+@require_http_methods(["GET"])
+def get_indents(request):
+    """
+    GET route to fetch all indents with Auth status 'Pending' or 'pending'
+    """
+    try:
+        # Filter indents with Auth status 'Pending' (case-insensitive)
+        pending_indents = Indent.objects.all()
+        
+        # Convert queryset to list of dictionaries
+        indents_data = []
+        for indent in pending_indents:
+            indent_dict = {
+                'id': indent.id,
+                'Plant': indent.Plant,
+                'Series': indent.Series,
+                'IndentNo': indent.IndentNo,
+                'Date': indent.Date,
+                'Time': indent.Time,
+                'Category': indent.Category,
+                'CPCCode': indent.CPCCode,
+                'WorkOrder': indent.WorkOrder,
+                'Remark': indent.Remark,
+                'Auth': indent.Auth,
+                # Include related New_Indent items if needed
+                'indent_details': []
+            }
+            
+            # Get related New_Indent records
+            new_indent_details = New_Indent.objects.filter(New_Indent_Detail=indent)
+            for detail in new_indent_details:
+                detail_dict = {
+                    'id': detail.id,
+                    'ItemNoCpcCode': detail.ItemNoCpcCode,
+                    'Description': detail.Description,
+                    'Unit': detail.Unit,
+                    'MachineAndDepartment': detail.MachineAndDepartment,
+                    'Qty': detail.Qty,
+                    'Type': detail.Type,
+                    'Remark': detail.Remark,
+                    'UseFor': detail.UseFor,
+                    'MoRef': detail.MoRef,
+                    'SchDate': detail.SchDate,
+                }
+                indent_dict['indent_details'].append(detail_dict)
+            
+            indents_data.append(indent_dict)
+        
+        return JsonResponse({
+            'success': True,
+            'count': len(indents_data),
+            'data': indents_data
+        }, status=200)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+
+@require_http_methods(["GET"])
+def get_pending_indents(request):
+    """
+    GET route to fetch all indents with Auth status 'Pending' or 'pending'
+    """
+    try:
+        # Filter indents with Auth status 'Pending' (case-insensitive)
+        pending_indents = Indent.objects.filter(Auth__iexact='pending')
+        
+        # Convert queryset to list of dictionaries
+        indents_data = []
+        for indent in pending_indents:
+            indent_dict = {
+                'id': indent.id,
+                'Plant': indent.Plant,
+                'Series': indent.Series,
+                'IndentNo': indent.IndentNo,
+                'Date': indent.Date,
+                'Time': indent.Time,
+                'Category': indent.Category,
+                'CPCCode': indent.CPCCode,
+                'WorkOrder': indent.WorkOrder,
+                'Remark': indent.Remark,
+                'Auth': indent.Auth,
+                # Include related New_Indent items if needed
+                'indent_details': []
+            }
+            
+            # Get related New_Indent records
+            new_indent_details = New_Indent.objects.filter(New_Indent_Detail=indent)
+            for detail in new_indent_details:
+                detail_dict = {
+                    'id': detail.id,
+                    'ItemNoCpcCode': detail.ItemNoCpcCode,
+                    'Description': detail.Description,
+                    'Unit': detail.Unit,
+                    'MachineAndDepartment': detail.MachineAndDepartment,
+                    'Qty': detail.Qty,
+                    'Type': detail.Type,
+                    'Remark': detail.Remark,
+                    'UseFor': detail.UseFor,
+                    'MoRef': detail.MoRef,
+                    'SchDate': detail.SchDate,
+                }
+                indent_dict['indent_details'].append(detail_dict)
+            
+            indents_data.append(indent_dict)
+        
+        return JsonResponse({
+            'success': True,
+            'count': len(indents_data),
+            'data': indents_data
+        }, status=200)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_indent_auth_status(request):
+    """
+    POST route to update Auth status of an indent
+    Expected JSON payload:
+    {
+        "indent_id": 1,
+        "auth_status": "Approved" or "Rejected" or "Pending"
+    }
+    """
+    try:
+        # Parse JSON data from request body
+        data = json.loads(request.body)
+        
+        # Get required fields
+        indent_id = data.get('indent_id')
+        auth_status = data.get('auth_status')
+        
+        # Validate required fields
+        if not indent_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'indent_id is required'
+            }, status=400)
+        
+        if not auth_status:
+            return JsonResponse({
+                'success': False,
+                'error': 'auth_status is required'
+            }, status=400)
+        
+        # Validate auth_status against allowed choices
+        valid_statuses = ['Pending', 'Approved', 'Rejected']
+        if auth_status not in valid_statuses:
+            return JsonResponse({
+                'success': False,
+                'error': f'auth_status must be one of: {", ".join(valid_statuses)}'
+            }, status=400)
+        
+        # Get the indent object
+        try:
+            indent = Indent.objects.get(id=indent_id)
+        except Indent.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': f'Indent with id {indent_id} not found'
+            }, status=404)
+        
+        # Store old status for response
+        old_status = indent.Auth
+        
+        # Update the Auth status
+        indent.Auth = auth_status
+        indent.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Indent auth status updated successfully',
+            'data': {
+                'indent_id': indent.id,
+                'indent_no': indent.IndentNo,
+                'old_status': old_status,
+                'new_status': indent.Auth,
+                'plant': indent.Plant,
+                'series': indent.Series
+            }
+        }, status=200)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON in request body'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
+
+from rest_framework import viewsets
+from .models import QuotationComparison
+from .models import RFQ
+from .serializers import QuotationComparisonSerializer
+from .serializers import RFQSerializer
+class QuotationComparisonViewSet(viewsets.ModelViewSet):
+    queryset = QuotationComparison.objects.all()
+    serializer_class = QuotationComparisonSerializer 
+class RFQViewSet(viewsets.ModelViewSet):
+    queryset=RFQ.objects.all()
+    serializer_class=RFQSerializer
+
+class DeleteQuotationComparison(APIView):
+    def delete(self, request, pk):
+        try:
+            quotation = QuotationComparison.objects.get(pk=pk)
+            quotation.delete()
+            return Response(
+                {'message': f'QuotationComparison with id {pk} deleted successfully'},
+                status=status.HTTP_204_NO_CONTENT
+            )
+        except QuotationComparison.DoesNotExist:
+            return Response(
+                {'error': 'QuotationComparison not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+
+class EditQuotationComparison(APIView):
+    def put(self, request, pk):
+        try:
+            quotation = QuotationComparison.objects.get(pk=pk)
+        except QuotationComparison.DoesNotExist:
+            return Response(
+                {'error': 'QuotationComparison not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = QuotationComparisonSerializer(quotation, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+from .utils import Create_RFQ_No
+
+class generate_unique_rfq_no(APIView):
+    def get(self, request):
+        try:
+            rfq_no = Create_RFQ_No()  
+            return Response({"rfq_no" : rfq_no}, status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+from All_Masters.models import ItemTable
+from All_Masters.models import BOMItem
+from .serializers import BOMItemWithnewjobwork
+from django.db.models import Q
+
+class newjobworkitemdata(APIView):
+    def get(self, request):
+        query = request.query_params.get('q', '').strip()
+        if not query:
+            return Response({'error': 'Search query "q" is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Filter ItemTable with any match of part_code, part_no or name_description
+        items = ItemTable.objects.filter(
+            Q(Part_Code__icontains=query) |
+            Q(part_no__icontains=query) |
+            Q(Name_Description__icontains=query)
+        )
+
+        if not items.exists():
+            return Response({'error': 'No items found matching your query'}, status=status.HTTP_404_NOT_FOUND)
+
+        bom_items = BOMItem.objects.filter(item__in=items)
+        serializer = BOMItemWithnewjobwork(bom_items, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK) 
+        

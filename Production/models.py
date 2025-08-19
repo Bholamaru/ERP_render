@@ -59,9 +59,10 @@ class MachineIdleTime(models.Model):
 
 
 from django.db import models
-
+from All_Masters.models import BOMItem
 class ProductionEntry(models.Model):
     MachineIdleTime_Detail_Enter = models.ManyToManyField(MachineIdleTime, related_name='ItemDetail_orders', blank=True)
+    # bom_item = models.ForeignKey(BOMItem, related_name='item', on_delete=models.CASCADE)
     Series = models.CharField(max_length=255, blank=True, null=True)
     General = models.CharField(max_length=255, blank=True, null=True)
     MachineDowntime = models.CharField(max_length=255, blank=True, null=True)
@@ -82,7 +83,9 @@ class ProductionEntry(models.Model):
     operator = models.CharField(max_length=255, blank=True, null=True)
     lot_no = models.CharField(max_length=255, blank=True, null=True)
     rework_qty = models.CharField(max_length=255, blank=True, null=True)
-    reject_qty = models.CharField(max_length=255, blank=True, null=True)
+    reject_qty = models.CharField(max_length=255, blank=True, null=True) 
+
+    raw_material=models.CharField(max_length=255, blank=True, null=True) 
 
     shift_from = models.CharField(max_length=255, blank=True, null=True)
     shift_to = models.CharField(max_length=255, blank=True, null=True)

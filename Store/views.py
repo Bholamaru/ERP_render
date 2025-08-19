@@ -117,6 +117,12 @@ class NewMRNItemSearchListView(generics.ListAPIView):
 
 from All_Masters.models import Add_New_Operator_Model
 from .serializers import NewMRNEmployeeDeptSerializer
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from django.http import JsonResponse
+from .models import NewMrn
+from .serializers import NewMrnSerializer
 
 class NewMRNEmployeeDeptListView(generics.ListAPIView):
     queryset = Add_New_Operator_Model.objects.all()
@@ -124,11 +130,34 @@ class NewMRNEmployeeDeptListView(generics.ListAPIView):
     filter_backends = [SearchFilter]
     search_fields = ['Code', 'Name', 'Type', 'Department']
 
+class PendingMrnListView(generics.ListAPIView):
+    serializer_class = NewMrnSerializer
+    
+    def get_queryset(self):
+        return NewMrn.objects.filter(Approve_status=['Pending', 'pending'])
+
+
+@api_view(['GET'])
+def get_pending_mrns(request):
+    try:
+        pending_mrns = NewMrn.objects.filter(Approve_status__in=['Pending', 'pending'])
+        serializer = NewMrnSerializer(pending_mrns, many=True)
+        return Response({
+            'success': True,
+            'count': pending_mrns.count(),
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 # Store Module:- SubCon GRN: 57F4 Inward Challan
 class InwardChallanListCreate(generics.ListCreateAPIView):
-    queryset = InwardChallan.objects.all()
+    queryset = InwardChallan2.objects.all()
     serializer_class = InwardChallanSerializer
 
 class InwardChallanRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
@@ -441,7 +470,7 @@ from rest_framework import status
 from Purchase.models import PurchasePO, ItemDetail
 from .serializers import PurchasePOSerializer, ItemDetailSerializer,GSTDetailSerializer
 
-# GET API 1: Search by PoNo
+
 class PurchasePODetailByPoNo(APIView):
     def get(self, request, pono):
         try:
@@ -1043,15 +1072,872 @@ class JobworkInwardChallanDetailView(APIView):
 
 
 # Purchase se po details get api
-from Purchase.models import NewJobWorkPoInfo
-from Purchase.serializers import NewJobWorkPoInfoSerializer
-
-class newjobworkpodetails(APIView):
-    def get(self, request):
-        supplier = request.query_params.get('supplier')
-        if not supplier:
-            return Response({"error": "supplier parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['GET'])
+def get_purchase_orders_by_supplier(request):
+    """
+    Get Purchase Orders by supplier name
+    URL: /api/purchase-orders/?supplier=<supplier_name>
+    """
+    supplier_name = request.query_params.get('supplier')
+    
+    if not supplier_name:
+        return Response(
+            {'error': 'Supplier parameter is required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Filter purchase orders by supplier (case-insensitive search)
+        purchase_orders = PurchasePO.objects.filter(
+            Supplier__icontains=supplier_name
+        ).prefetch_related(
+            'Item_Detail_Enter',
+            'Gst_Details',
+            'Item_Details_Other',
+            'Schedule_Line',
+            'Ship_To_Add'
+        )
         
-        pos = NewJobWorkPoInfo.objects.filter(Supplier__iexact=supplier)
-        serializer = NewJobWorkPoInfoSerializer(pos, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        if not purchase_orders.exists():
+            return Response(
+                {'message': f'No purchase orders found for supplier: {supplier_name}'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = PurchasePOSerializer(purchase_orders, many=True)
+        
+        return Response({
+            'count': purchase_orders.count(),
+            'supplier': supplier_name,
+            'purchase_orders': serializer.data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': f'An error occurred: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+
+from weasyprint import HTML
+from django.http import HttpResponse
+from django.template.loader import get_template
+
+# def generate_inwardchallan_pdf(request, pk):
+#     challan = get_object_or_404(InwardChallan2, pk=pk)
+
+#     serializer = InwardChallanSerializer(challan)
+#     challan_data = serializer.data
+#     # context = {
+#     #     'challan': challan_data 
+#     # }
+#     combined_items = zip(
+#     challan_data.get("InwardChallanGSTDetails", []),
+#     challan_data.get("InwardChallanTable", [])    
+# )
+#     suppliername = challan.SupplierName
+#     grn_detail = GrnGenralDetail.objects.filter(SelectSupplier__iexact=suppliername).first()
+#     heat_no = grn_detail.HeatNo if grn_detail else None
+
+    
+#     table_items = challan_data.get("InwardChallanTable", [])
+#     total_qty_no = 0
+#     for item in table_items:
+#         qty_str = item.get('InQtyNOS')
+#         if qty_str:
+#         # Remove "Nos", strip whitespace
+#             qty_str = qty_str.replace("Nos", "").strip()
+#         try:
+#             total_qty_no += float(qty_str)
+#         except (ValueError, TypeError):
+#             pass
+
+#     context = {
+#     "challan": challan_data,
+#     "items": combined_items,
+#     "heat_no": heat_no,
+#     "total_qty": total_qty_no
+
+# }
+
+
+#     # Render HTML
+#     template = get_template('inwardchallan_detail.html')
+#     html_content = template.render(context)
+
+#     # Convert to PDF
+#     pdf_file = HTML(string=html_content).write_pdf()
+
+#     response = HttpResponse(pdf_file, content_type='application/pdf')
+#     response['Content-Disposition'] = f'inline; filename="inwardchallan_{pk}.pdf"'
+#     return response
+
+# views.py
+def generate_inwardchallan_pdf(request, pk):
+    challan = get_object_or_404(InwardChallan2, pk=pk)
+
+    serializer = InwardChallanSerializer(challan)
+    challan_data = serializer.data
+    
+    combined_items = zip(
+        challan_data.get("InwardChallanGSTDetails", []),
+        challan_data.get("InwardChallanTable", [])    
+    )
+    
+    # Get all GRN records with the same gate entry number
+    gate_entry_no = challan.GateEntryNo
+    grn_details = GrnGenralDetail.objects.filter(GateEntryNo__iexact=gate_entry_no)
+    
+    print(f"Found {grn_details.count()} GRN records for gate entry: {gate_entry_no}")
+    
+    # Get all related NewGrnList items for these GRN records
+    grn_items = NewGrnList.objects.filter(New_MRN_Detail__in=grn_details)
+    
+    print(f"Found {grn_items.count()} GRN items")
+    
+    # Create a mapping of ItemCode and Description to HeatNo
+    item_heat_mapping = {}
+    description_heat_mapping = {}
+    
+    for grn_detail in grn_details:
+        for grn_item in grn_detail.NewGrnList.all():
+            item_code = grn_item.ItemNoCode
+            description = grn_item.Description
+            heat_no = grn_item.HeatNo
+            
+            if item_code and heat_no:
+                item_heat_mapping[item_code] = heat_no
+                print(f"Mapped ItemCode '{item_code}' to HeatNo '{heat_no}'")
+            
+            if description and heat_no:
+                description_heat_mapping[description] = heat_no
+                print(f"Mapped Description '{description}' to HeatNo '{heat_no}'")
+    
+    # Get ItemCodes from inward challan table
+    table_items = challan_data.get("InwardChallanTable", [])
+    inward_item_codes = []
+    
+    print("Inward challan table items:")
+    for item in table_items:
+        print(f"  Item: {item}")
+        item_code = item.get('ItemDescription')  # or whatever field contains the item code
+        if item_code:
+            inward_item_codes.append(item_code)
+    
+    print(f"Inward challan item codes: {inward_item_codes}")
+    
+    # Find matching heat numbers - check both ItemCode and Description mappings
+    matched_heat_numbers = []
+    for item_code in inward_item_codes:
+        heat_no = None
+        
+        # First try to match by ItemCode
+        if item_code in item_heat_mapping:
+            heat_no = item_heat_mapping[item_code]
+            print(f"Found match by ItemCode: '{item_code}' -> HeatNo '{heat_no}'")
+        
+        # If not found, try to match by Description
+        elif item_code in description_heat_mapping:
+            heat_no = description_heat_mapping[item_code]
+            print(f"Found match by Description: '{item_code}' -> HeatNo '{heat_no}'")
+        
+        if heat_no:
+            matched_heat_numbers.append(heat_no)
+    
+    # Use the first matched heat number, or combine all if needed
+    heat_no = matched_heat_numbers[0] if matched_heat_numbers else None
+    
+    # If you want all heat numbers as a comma-separated string:
+    # heat_no = ", ".join(set(matched_heat_numbers)) if matched_heat_numbers else None
+    
+    print(f"Final heat_no used: {heat_no}")
+    
+    # Calculate total quantity
+    total_qty_no = 0
+    for item in table_items:
+        qty_str = item.get('InQtyNOS')
+        if qty_str:
+            qty_str = qty_str.replace("Nos", "").strip()
+            try:
+                total_qty_no += float(qty_str)
+            except (ValueError, TypeError):
+                pass
+
+    context = {
+        "challan": challan_data,
+        "items": combined_items,
+        "heat_no": heat_no,
+        "total_qty": total_qty_no,
+        "matched_heat_numbers": matched_heat_numbers  # In case you want to show all
+    }
+
+    # Render HTML
+    template = get_template('inwardchallan_detail.html')
+    html_content = template.render(context)
+
+    # Convert to PDF
+    pdf_file = HTML(string=html_content).write_pdf()
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="inwardchallan_{pk}.pdf"'
+    return response
+
+
+
+
+# views.py
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .models import GrnGenralDetail, NewGrnList
+from .serializers import GrnGenralDetailSerializer
+
+@api_view(['GET'])
+def get_grn_heat_numbers(request):
+    """
+    Get heat numbers from GRN records based on part number and/or item code
+    
+    Query Parameters:
+    - part_no: Part number to search for
+    - item_code: Item code to search for
+    - gate_entry_no: Gate entry number to filter by (optional)
+    
+    Returns:
+    - List of heat numbers with associated item details
+    """
+    
+    part_no = request.GET.get('part_no')
+    item_code = request.GET.get('item_code')
+    gate_entry_no = request.GET.get('gate_entry_no')
+    
+    if not part_no and not item_code:
+        return Response(
+            {"error": "At least one of 'part_no' or 'item_code' parameter is required"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Build the query
+    grn_query = GrnGenralDetail.objects.all()
+    
+    # Filter by gate entry number if provided
+    if gate_entry_no:
+        grn_query = grn_query.filter(GateEntryNo__iexact=gate_entry_no)
+    
+    # Get all GRN records
+    grn_details = grn_query.all()
+    
+    heat_numbers_data = []
+    found_items = []
+    
+    for grn_detail in grn_details:
+        # Get all NewGrnList items for this GRN
+        grn_items = grn_detail.NewGrnList.all()
+        
+        for grn_item in grn_items:
+            # Check if the item matches the search criteria
+            matches = False
+            
+            # Check part number (assuming it's stored in Description field)
+            if part_no and grn_item.Description and part_no.lower() in grn_item.Description.lower():
+                matches = True
+            
+            # Check item code
+            if item_code and grn_item.ItemNoCode and item_code.lower() == grn_item.ItemNoCode.lower():
+                matches = True
+            
+            if matches and grn_item.HeatNo:
+                item_data = {
+                    'grn_no': grn_detail.GrnNo,
+                    'gate_entry_no': grn_detail.GateEntryNo,
+                    'grn_date': grn_detail.GrnDate,
+                    'supplier': grn_detail.SelectSupplier,
+                    'item_code': grn_item.ItemNoCode,
+                    'description': grn_item.Description,
+                    'heat_no': grn_item.HeatNo,
+                    'quantity': grn_item.GrnQty,
+                    'unit': grn_item.UnitCode,
+                    'mfg_date': grn_item.MfgDate,
+                    'po_no': grn_item.PoNo
+                }
+                
+                heat_numbers_data.append(item_data)
+                found_items.append(grn_item.ItemNoCode)
+    
+    # Remove duplicates while preserving order
+    unique_heat_numbers = []
+    seen_heat_nos = set()
+    
+    for item in heat_numbers_data:
+        heat_no = item['heat_no']
+        if heat_no not in seen_heat_nos:
+            unique_heat_numbers.append(item)
+            seen_heat_nos.add(heat_no)
+    
+    response_data = {
+        'search_criteria': {
+            'part_no': part_no,
+            'item_code': item_code,
+            'gate_entry_no': gate_entry_no
+        },
+        'total_records_found': len(heat_numbers_data),
+        'unique_heat_numbers_count': len(unique_heat_numbers),
+        'heat_numbers': unique_heat_numbers,
+        'all_records': heat_numbers_data  # Include all records for detailed view
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from django.shortcuts import get_object_or_404
+from .models import FGMovement
+from .serializers import FGMovementSerializer
+
+# class FGMovementListCreateView(ListCreateAPIView):
+#     queryset = FGMovement.objects.all()
+#     serializer_class = FGMovementSerializer
+#     permission_classes = [IsAuthenticated]
+    
+#     def get_queryset(self):
+#         queryset = FGMovement.objects.all()
+        
+#         # Filter by date range if provided
+#         start_date = self.request.query_params.get('start_date')
+#         end_date = self.request.query_params.get('end_date')
+        
+#         if start_date:
+#             queryset = queryset.filter(date__gte=start_date)
+#         if end_date:
+#             queryset = queryset.filter(date__lte=end_date)
+        
+#         # Filter by item code if provided
+#         item_code = self.request.query_params.get('item_code')
+#         if item_code:
+#             queryset = queryset.filter(fg_item_code__icontains=item_code)
+        
+#         return queryset
+
+# class FGMovementDetailView(RetrieveUpdateDestroyAPIView):
+#     queryset = FGMovement.objects.all()
+#     serializer_class = FGMovementSerializer
+#     permission_classes = [IsAuthenticated]
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_fg_movement(request):
+    """
+    Create a new FG Movement entry
+    """
+    serializer = FGMovementSerializer(data=request.data, context={'request': request})
+    
+    if serializer.is_valid():
+        fg_movement = serializer.save()
+        return Response({
+            'success': True,
+            'message': 'FG Movement created successfully',
+            'data': FGMovementSerializer(fg_movement).data
+        }, status=status.HTTP_201_CREATED)
+    
+    return Response({
+        'success': False,
+        'message': 'Validation error',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_fg_movements(request):
+    """
+    Get all FG Movements with optional filtering
+    """
+    try:
+        movements = FGMovement.objects.all()
+        
+        # Apply filters
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        item_code = request.GET.get('item_code')
+        
+        if start_date:
+            movements = movements.filter(date__gte=start_date)
+        if end_date:
+            movements = movements.filter(date__lte=end_date)
+        if item_code:
+            movements = movements.filter(fg_item_code__icontains=item_code)
+        
+        serializer = FGMovementSerializer(movements, many=True)
+        
+        return Response({
+            'success': True,
+            'count': movements.count(),
+            'data': serializer.data
+        })
+    
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error fetching FG movements: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_fg_movement_by_id(request, movement_id):
+    """
+    Get a specific FG Movement by ID
+    """
+    try:
+        movement = get_object_or_404(FGMovement, id=movement_id)
+        serializer = FGMovementSerializer(movement)
+        
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+    
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error fetching FG movement: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_fg_movement(request, movement_id):
+    """
+    Update an existing FG Movement
+    """
+    try:
+        movement = get_object_or_404(FGMovement, id=movement_id)
+        serializer = FGMovementSerializer(movement, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            updated_movement = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'FG Movement updated successfully',
+                'data': FGMovementSerializer(updated_movement).data
+            })
+        
+        return Response({
+            'success': False,
+            'message': 'Validation error',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error updating FG movement: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_fg_movement(request, movement_id):
+    """
+    Delete an FG Movement
+    """
+    try:
+        movement = get_object_or_404(FGMovement, id=movement_id)
+        movement.delete()
+        
+        return Response({
+            'success': True,
+            'message': 'FG Movement deleted successfully'
+        })
+    
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error deleting FG movement: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from Purchase.models import PurchasePO, ItemDetail
+from .models import GeneralDetails, ItemDetails
+from .serializers import PurchasePOSerializer, ItemDetailSerializer, GSTDetailSerializer
+from decimal import Decimal
+
+
+class GRNQuantityCalculation(APIView):
+    def get(self, request, pono):
+        try:
+            # Fetch PurchasePO by PoNo
+            po = PurchasePO.objects.get(PoNo=pono)
+            
+            # Get all gate entries related to this PO (you might need to add a field to link them)
+            # For now, I'll assume you link them by some identifier or manual matching
+            gate_entries = GeneralDetails.objects.filter(
+                # Add your condition here to link PO with Gate Entry
+                 po_reference=pono 
+            )
+            
+            # Serialize PO Item_Detail_Enter
+            po_items_serializer = ItemDetailSerializer(po.Item_Detail_Enter.all(), many=True)
+            po_items_data = po_items_serializer.data
+            
+            # Get all gate entry items
+            gate_entry_items = []
+            for gate_entry in gate_entries:
+                gate_items = ItemDetails.objects.filter(Work_Order_detail=gate_entry)
+                for gate_item in gate_items:
+                    gate_entry_items.append({
+                        'ItemNo': gate_item.ItemNo,
+                        'Description': gate_item.Description,
+                        'Qty_NOS': gate_item.Qty_NOS,
+                        'QTY_KG': gate_item.QTY_KG,
+                        'Unit_Code': gate_item.Unit_Code,
+                        'GE_No': gate_entry.GE_No,
+                        'GE_Date': gate_entry.GE_Date,
+                        'ChallanNo': gate_entry.ChallanNo,
+                        'ChallanDate': gate_entry.ChallanDate
+                    })
+            
+            # Calculate GRN quantities
+            grn_items = []
+            
+            for po_item in po_items_data:
+                # Add PoNo and PoDate to each item
+                po_item['PoNo'] = po.PoNo
+                po_item['PoDate'] = po.PoDate
+                
+                # Find matching gate entry items (match by ItemNo or Description)
+                received_quantity = 0
+                received_weight = 0
+                matching_gate_entries = []
+                
+                for gate_item in gate_entry_items:
+                    # Match items by ItemNo or Description
+                    if (gate_item['ItemNo'] and po_item.get('ItemNo') and 
+                        gate_item['ItemNo'].strip().lower() == po_item.get('ItemNo', '').strip().lower()) or \
+                       (gate_item['Description'] and po_item.get('Description') and 
+                        gate_item['Description'].strip().lower() == po_item.get('Description', '').strip().lower()):
+                        
+                        # Add to received quantity
+                        try:
+                            if gate_item['Qty_NOS']:
+                                received_quantity += float(gate_item['Qty_NOS'])
+                        except (ValueError, TypeError):
+                            pass
+                        
+                        try:
+                            if gate_item['QTY_KG']:
+                                received_weight += float(gate_item['QTY_KG'])
+                        except (ValueError, TypeError):
+                            pass
+                        
+                        matching_gate_entries.append(gate_item)
+                
+                # Calculate GRN quantity (PO quantity - received quantity)
+                po_quantity = float(po_item.get('Qty', 0) or 0)
+                grn_quantity = po_quantity - received_quantity
+                
+                grn_item = {
+                    **po_item,  # Include all PO item details
+                    'ReceivedQuantity': received_quantity,
+                    'ReceivedWeight': received_weight,
+                    'GRNQuantity': grn_quantity,
+                    'PendingQuantity': max(0, grn_quantity),  # Ensure non-negative
+                    'MatchingGateEntries': matching_gate_entries,
+                    'Status': 'Completed' if grn_quantity <= 0 else 'Pending'
+                }
+                
+                grn_items.append(grn_item)
+            
+            # Serialize GST details as before
+            gst_details_serializer = GSTDetailSerializer(po.Gst_Details.all(), many=True)
+            
+            # Prepare summary data
+            total_po_items = len(grn_items)
+            completed_items = len([item for item in grn_items if item['Status'] == 'Completed'])
+            pending_items = total_po_items - completed_items
+            
+            summary = {
+                'TotalPOItems': total_po_items,
+                'CompletedItems': completed_items,
+                'PendingItems': pending_items,
+                'CompletionPercentage': round((completed_items / total_po_items * 100), 2) if total_po_items > 0 else 0
+            }
+            
+            data = {
+                "PoNo": po.PoNo,
+                "PoDate": po.PoDate,
+                "Summary": summary,
+                "GRN_Items": grn_items,
+                "Gst_Details": gst_details_serializer.data
+            }
+            
+            return Response(data, status=status.HTTP_200_OK)
+            
+        except PurchasePO.DoesNotExist:
+            return Response({"error": "PO not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class GRNQuantityByMultiplePOs(APIView):
+    """
+    Alternative view to handle multiple POs or get GRN data for all pending POs
+    """
+    def get(self, request):
+        try:
+            # Get query parameters
+            po_numbers = request.query_params.get('po_numbers', '').split(',')
+            status_filter = request.query_params.get('status', 'all')  # all, pending, completed
+            
+            if not po_numbers or po_numbers == ['']:
+                # If no specific POs requested, get all POs
+                pos = PurchasePO.objects.all()
+            else:
+                # Filter by specific PO numbers
+                pos = PurchasePO.objects.filter(PoNo__in=po_numbers)
+            
+            all_grn_data = []
+            
+            for po in pos:
+                # Reuse the logic from the single PO view
+                try:
+                    gate_entries = GeneralDetails.objects.filter(
+                        # Add your condition here to link PO with Gate Entry
+                    )
+                    
+                    po_items_serializer = ItemDetailSerializer(po.Item_Detail_Enter.all(), many=True)
+                    po_items_data = po_items_serializer.data
+                    
+                    gate_entry_items = []
+                    for gate_entry in gate_entries:
+                        gate_items = ItemDetails.objects.filter(Work_Order_detail=gate_entry)
+                        for gate_item in gate_items:
+                            gate_entry_items.append({
+                                'ItemNo': gate_item.ItemNo,
+                                'Description': gate_item.Description,
+                                'Qty_NOS': gate_item.Qty_NOS,
+                                'QTY_KG': gate_item.QTY_KG,
+                                'Unit_Code': gate_item.Unit_Code,
+                                'GE_No': gate_entry.GE_No,
+                                'GE_Date': gate_entry.GE_Date
+                            })
+                    
+                    grn_items = []
+                    for po_item in po_items_data:
+                        po_item['PoNo'] = po.PoNo
+                        po_item['PoDate'] = po.PoDate
+                        
+                        received_quantity = 0
+                        for gate_item in gate_entry_items:
+                            if (gate_item['ItemNo'] and po_item.get('ItemNo') and 
+                                gate_item['ItemNo'].strip().lower() == po_item.get('ItemNo', '').strip().lower()):
+                                try:
+                                    if gate_item['Qty_NOS']:
+                                        received_quantity += float(gate_item['Qty_NOS'])
+                                except (ValueError, TypeError):
+                                    pass
+                        
+                        po_quantity = float(po_item.get('Qty', 0) or 0)
+                        grn_quantity = po_quantity - received_quantity
+                        
+                        grn_item = {
+                            **po_item,
+                            'ReceivedQuantity': received_quantity,
+                            'GRNQuantity': grn_quantity,
+                            'Status': 'Completed' if grn_quantity <= 0 else 'Pending'
+                        }
+                        
+                        # Apply status filter
+                        if status_filter == 'all' or \
+                           (status_filter == 'pending' and grn_item['Status'] == 'Pending') or \
+                           (status_filter == 'completed' and grn_item['Status'] == 'Completed'):
+                            grn_items.append(grn_item)
+                    
+                    if grn_items:  # Only add PO if it has items matching the filter
+                        po_data = {
+                            "PoNo": po.PoNo,
+                            "PoDate": po.PoDate,
+                            "GRN_Items": grn_items
+                        }
+                        all_grn_data.append(po_data)
+                        
+                except Exception as e:
+                    continue  # Skip this PO if there's an error
+            
+            return Response({
+                "PurchaseOrders": all_grn_data,
+                "TotalPOs": len(all_grn_data)
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+from .models import GrnGenralDetail, NewGrnList, GrnGst, GrnGstTDC
+
+
+@api_view(['GET'])
+def get_grn_data(request, grn_id=None):
+    """
+    GET API to fetch GRN data for the table
+    """
+    try:
+        if grn_id:
+            # Fetch specific GRN record
+            grn_detail = get_object_or_404(GrnGenralDetail, id=grn_id)
+            grn_items = NewGrnList.objects.filter(New_MRN_Detail=grn_detail)
+            grn_gst = GrnGst.objects.filter(New_MRN_Detail=grn_detail)
+            grn_tdc = GrnGstTDC.objects.filter(New_MRN_Detail=grn_detail).first()
+        else:
+            # Fetch all GRN records
+            grn_items = NewGrnList.objects.all()
+            grn_gst = GrnGst.objects.all()
+        
+        # Prepare response data
+        response_data = []
+        
+        for index, item in enumerate(grn_items, 1):
+            # Find corresponding GST data for this item
+            gst_data = grn_gst.filter(ItemCode=item.ItemNoCode).first() if grn_gst else None
+            
+            # Calculate amount (Rate * GrnQty)
+            try:
+                rate = float(item.Rate) if item.Rate else 0
+                qty = float(item.GrnQty) if item.GrnQty else 0
+                amount = rate * qty
+            except (ValueError, TypeError):
+                amount = 0
+            
+            item_data = {
+                'sr_no': index,
+                'item_code': item.ItemNoCode or '',
+                'description': item.Description or '',
+                'size': '',  # Not available in current models
+                'group_name': '',  # Not available in current models
+                'unit_code': item.UnitCode or '',
+                'item_type': '',  # Not available in current models
+                'po_rate_qty': item.PoQty or '',
+                'qc_stock': '',  # Not available in current models
+                'f4_stock': '',  # Not available in current models
+                'shop_floor': '',  # Not available in current models
+                'stock': item.BalQty or '',
+                'heat_no': item.HeatNo or '',
+                'rate': item.Rate or '',
+                'amount': amount,
+                # Additional fields that might be useful
+                'grn_qty': item.GrnQty or '',
+                'challan_qty': item.ChalQty or '',
+                'short_excess_qty': item.ShortExcessQty or '',
+                'po_no': item.PoNo or '',
+                'date': item.Date or '',
+                'mfg_date': item.MfgDate or '',
+                # GST related data if available
+                'hsn': gst_data.HSN if gst_data else '',
+                'po_rate': gst_data.PoRate if gst_data else '',
+                'discount_rate': gst_data.DiscRate if gst_data else '',
+                'cgst': gst_data.CGST if gst_data else '',
+                'sgst': gst_data.SGST if gst_data else '',
+                'igst': gst_data.IGST if gst_data else '',
+            }
+            response_data.append(item_data)
+        
+        return Response({
+            'success': True,
+            'message': 'Data fetched successfully',
+            'data': response_data,
+            'total_records': len(response_data)
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error fetching data: {str(e)}',
+            'data': []
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_grn_summary(request, grn_id):
+    """
+    GET API to fetch GRN summary including tax details
+    """
+    try:
+        grn_detail = get_object_or_404(GrnGenralDetail, id=grn_id)
+        grn_tdc = GrnGstTDC.objects.filter(New_MRN_Detail=grn_detail).first()
+        
+        summary_data = {
+            'grn_info': {
+                'grn_no': grn_detail.GrnNo or '',
+                'grn_date': grn_detail.GrnDate or '',
+                'grn_time': grn_detail.GrnTime or '',
+                'plant': grn_detail.Plant or '',
+                'supplier': grn_detail.SelectSupplier or '',
+                'po_number': grn_detail.SelectPO or '',
+                'challan_no': grn_detail.ChallanNo or '',
+                'challan_date': grn_detail.ChallanDate or '',
+                'invoice_no': grn_detail.InvoiceNo or '',
+                'invoice_date': grn_detail.InvoiceDate or '',
+                'vehicle_no': grn_detail.VehicleNo or '',
+                'transporter': grn_detail.Transporter or '',
+            },
+            'tax_details': {
+                'assessable_value': float(grn_tdc.assessable_value) if grn_tdc else 0,
+                'packing_charges': float(grn_tdc.packing_forwarding_charges) if grn_tdc and grn_tdc.packing_forwarding_charges else 0,
+                'transport_charges': float(grn_tdc.transport_charges) if grn_tdc and grn_tdc.transport_charges else 0,
+                'insurance': float(grn_tdc.insurance) if grn_tdc and grn_tdc.insurance else 0,
+                'cgst': float(grn_tdc.cgst) if grn_tdc else 0,
+                'sgst': float(grn_tdc.sgst) if grn_tdc else 0,
+                'igst': float(grn_tdc.igst) if grn_tdc else 0,
+                'vat': float(grn_tdc.vat) if grn_tdc else 0,
+                'cess_amount': float(grn_tdc.cess_amount) if grn_tdc else 0,
+                'tds': float(grn_tdc.Tds) if grn_tdc and grn_tdc.Tds else 0,
+                'tcs_amount': float(grn_tdc.tcs_amount) if grn_tdc and grn_tdc.tcs_amount else 0,
+                'grand_total': float(grn_tdc.grand_total) if grn_tdc else 0,
+            } if grn_tdc else {}
+        }
+        
+        return Response({
+            'success': True,
+            'message': 'GRN summary fetched successfully',
+            'data': summary_data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error fetching GRN summary: {str(e)}',
+            'data': {}
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+#wip stock report
+from django.db.models import Q
+from All_Masters.models import ItemTable
+class WIPStockreport(APIView):
+    def get(self, request):
+        query = request.query_params.get('q', '').strip()
+        if not query:
+            return Response({'error': 'Search query "q" is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Filter ItemTable with any match of part_code, part_no or name_description
+        items = ItemTable.objects.filter(
+            Q(Part_Code__icontains=query) |
+            Q(part_no__icontains=query) |
+            Q(Name_Description__icontains=query)
+        )
+        if not items.exists():
+            return Response({'error': 'No items found matching your query'}, status=status.HTTP_404_NOT_FOUND)
+
+        bom_items = BOMItem.objects.filter(item__in=items)
+        serializer = WipSerializer(bom_items, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK) 

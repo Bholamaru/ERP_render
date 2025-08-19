@@ -10,4 +10,5 @@ admin.site.register(Cut_Wise)
 admin.site.register(Type_Model)
 admin.site.register(City_Model)
 admin.site.register(ItemTransaction)
+admin.site.register(ItemTable)
 

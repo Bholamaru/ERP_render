@@ -834,3 +834,134 @@ from .serializers import ProductDetailGetSerializer
 class ProductDetailGetView(ListAPIView):
     queryset = ProductDetail2.objects.all()
     serializer_class = ProductDetailGetSerializer
+
+
+
+# production me allmaster itemtable data
+from All_Masters.models import *
+from .serializers import ItemdropdownSerializer
+class ItemdropdownAPIView(generics.ListAPIView):
+    serializer_class = ItemdropdownSerializer
+    def get_queryset(self):
+        query = self.request.query_params.get('q', '').strip()
+        if query:
+            return ItemTable.objects.filter(
+                Q(Part_Code__icontains=query)|
+                Q(Name_Description__icontains=query)|
+                Q(part_no__icontains=query)
+            )
+        return ItemTable.objects.all()
+    
+from .serializers import BOMItemdropSerializer
+class BOMItemByPartCodeAPIView(APIView):
+    def get(self, request):
+        part_code = request.query_params.get('part_code')
+        if not part_code:
+            return Response({'error': 'part_code is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        items = ItemTable.objects.filter(Part_Code=part_code)
+        if not items.exists():
+            return Response({'error': 'Item with given Part_Code not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        bom_items = BOMItem.objects.filter(item__in=items)
+        serializer = BOMItemdropSerializer(bom_items, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+from Store.models import  NewGrnList
+class HeatNoListAPIView(APIView):
+    """
+    API to get distinct Heat Numbers from GRN
+    """
+    def get(self, request):
+        try:
+            part_code = request.GET.get("part_code", "").strip()
+
+            # fetch heat numbers from NewGrnList
+            queryset = NewGrnList.objects.all()
+
+            if part_code:
+                queryset = queryset.filter(ItemNoCode__iexact=part_code)
+
+            # get distinct heat numbers
+            heat_nos = queryset.values_list("HeatNo", flat=True).distinct()
+
+            return Response({
+                "success": True,
+                "message": "Heat numbers fetched successfully",
+                "heat_numbers": [hn for hn in heat_nos if hn]  # remove None/empty
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": f"Error fetching heat numbers: {str(e)}",
+                "heat_numbers": []
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# from .serializers import WipSerializer
+# class WIPStockreport(APIView):
+#     def get(self, request):
+#         part_code= request.query_params.get('part_code')
+#         if not part_code:
+#             return Response({'error':'part_code is required'}, status=status.HTTP_400_BAD_REQUEST)
+#         items =ItemTable.objects.filter(Part_Code=part_code)
+#         if not items.exists():
+#             return Response({'error': 'Item with given Part_Code not found'}, status=status.HTTP_404_NOT_FOUND)
+#         bom_items= BOMItem.objects.filter(item__in=items)
+#         serializer= WipSerializer(bom_items, many=True)
+#         return Response(serializer.data,status=status.HTTP_200_OK)
+
+# class WIPStockreport(APIView):
+#     def get(self, request):
+#         query = request.query_params.get('q', '').strip()
+#         if not query:
+#             return Response({'error': 'Search query "q" is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Filter ItemTable with any match of part_code, part_no or name_description
+#         items = ItemTable.objects.filter(
+#             Q(Part_Code__icontains=query) |
+#             Q(part_no__icontains=query) |
+#             Q(Name_Description__icontains=query)
+#         )
+
+#         if not items.exists():
+#             return Response({'error': 'No items found matching your query'}, status=status.HTTP_404_NOT_FOUND)
+
+#         bom_items = BOMItem.objects.filter(item__in=items)
+#         serializer = WipSerializer(bom_items, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)   
+#fetch data for wip production
+# from All_Masters.serializers import BOMItemSerializer 
+# class WIPProduction(APIView):
+#     def get(self, request):
+#         grouped_data = {}
+#         all_items = ItemTable.objects.all()
+
+#         for item in all_items:
+#             bom_items = BOMItem.objects.filter(item=item)
+#             if not bom_items.exists():
+#                 continue
+
+#             serializer = BOMItemSerializer(bom_items, many=True)
+            
+#             # grouped_data[item.Part_Code] = {
+#             #     "item_id": item.id,
+#             #     "bom_items": serializer.data
+#             # }
+
+#             grouped_data[f"{item.Part_Code} - {item.Name_Description}"] = {
+#                 "item_id": item.id,
+#                 "bom_items": serializer.data
+#              }
+
+#         if not grouped_data:
+#             return Response(
+#                 {"message": "No BOM data found."},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         return Response(grouped_data, status=status.HTTP_200_OK)
+

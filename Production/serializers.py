@@ -522,3 +522,17 @@ class ProductDetailGetSerializer(serializers.ModelSerializer):
 
     def get_PartCode2(self, obj):
         return self.split_part_code(obj.part_code2)[1]
+
+
+from All_Masters.models import *
+class ItemdropdownSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemTable
+        fields= ['Part_Code','part_no' , 'Name_Description']
+
+class BOMItemdropSerializer(serializers.ModelSerializer):
+    item_part_code = serializers.CharField(source='item.Part_Code', read_only=True)
+    class Meta:
+        model = BOMItem
+        fields = ['item_part_code','OPNo', 'PartCode']
+

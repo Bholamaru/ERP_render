@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>BOM PDF</title>
+    <style>
+    @page {
+        size: A4 landscape;
+        margin: 10px;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        margin: 10px;
+    }
+     h1, h3 {
+        text-align: center;
+        margin: 5px 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    th, td {
+        border: 1px solid #000;
+        padding: 2px;
+        text-align: center;
+        font-size: 9px;
+        word-wrap: break-word;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    tfoot {
+        display: table-footer-group;
+    }
+
+    tr {
+        page-break-inside: avoid !important;
+    }
+    .footer {
+            margin-top: 40px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+        }
+</style>
+
+
+</head>
+<body>
+    <h1>SHARP ENGINEERS</h1>
+    <h3>Routing For {{ item.Part_Code }} | {{ item.Name_Description }} (F)</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Sr</th>
+                <th>Item No</th>
+                <th>Op No</th>
+                <th>OP Name</th>
+                <th>Part Code</th>
+                <th>Part Type</th>
+                <th>Bom Qty</th>
+                <th>Bom Part Desc</th>
+                <th>Scrap Item</th>
+                <th>Scrap Qty</th>
+                <th>Op Type</th>
+                <th>QC</th>
+                <th>Prod Qty</th>
+                <th>WIP wt</th>
+                <th>WIP rate</th>
+                <th>Piece Rate</th>
+                <th>Op Rate</th>
+                <th>Op. Spec.</th>
+                <th>Cycle Time</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bom in bom_list %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.Part_Code }}</td>
+                <td>{{ bom.OPNo }}</td>
+                <td>{{ bom.Operation }}</td>
+                <td>{{ bom.PartCode }}</td>
+                <td>{{ bom.BOMPartType }}</td>
+                <td>{{ bom.BomPartCode }}</td>
+                <td>{{ bom.BomPartDesc }}</td>
+                <td>{{ bom.ScrapCode }}</td>
+                <td>{{ bom.ScracpQty }}</td>
+                <td></td>
+                <td>{{ bom.QC }}</td>
+                <td>{{ bom.ProdQty }}</td>
+                <td>{{ bom.WipWt }}</td>
+                <td>{{ bom.WipRate }}</td>
+                <td>{{ bom.PieceRate }}</td>
+                <td>{{ bom.OPRate }}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <span>Page No : 1 of 1</span>
+        <span>Create Date : {{ now|date:"m/d/Y" }}</span>
+    </div>
+</body>
+</html>

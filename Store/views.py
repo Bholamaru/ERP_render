@@ -2564,7 +2564,9 @@ class WIPStockreport(APIView):
 
                 production_entries = ProductionEntry.objects.filter(
                     item__icontains=item.Part_Code,
-                    operation__icontains=bom.OPNo
+                    # operation=bom.OPNo
+                    operation__icontains=bom.OPNo,
+
                 )
 
                 # Get vendor balance using BOM PartCode (raw material)
@@ -2643,7 +2645,16 @@ class WIPStockreport(APIView):
         # ==========================================
         merged = {}
 
+        def extract_op_no(operation):
+            if not operation:
+                return None
+            return operation.split("|")[0]   #"10|PFFGFG1001" → "10"
+        
+
+
         for row in response_data:
+            row["OPNo"] = extract_op_no(row.get("operation"))
+
             key = (
                 row["part_code"],
                 row["part_no"],
@@ -2687,6 +2698,8 @@ class WIPStockreport(APIView):
 
         # Replace response data with merged rows
         response_data = list(merged.values())
+
+                
 
         # ================================================
         # 🔥 RECALCULATE TOTAL SUMMARY AFTER MERGE

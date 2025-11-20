@@ -12,8 +12,9 @@ from .views import editvehicaldetails
 from .views import purchaseview
 from .views import inwardchallanview,InwardChallanRMView
 from .views import outwardchallanview
-from .views import supplierview
-from .import views
+from .views import supplierview 
+from .views import ItemFullReport
+from .import views 
 
 router = DefaultRouter()
 router.register(r'onwardchallan', OnwardChallanViewSet)
@@ -37,5 +38,7 @@ urlpatterns=router.urls+[
     path('onwardchallan/pdf/<int:pk>/', views.generate_onwardchallan_pdf,name='pdf'),
 
     path('inwardchallanrmview/',InwardChallanRMView.as_view(), name="inwardcahllan-rm-views"),
-    path("genrate-rework-no",generate_unique_rework_number.as_view(),name='Genrate-Rework-number')
+    path("genrate-rework-no",generate_unique_rework_number.as_view(),name='Genrate-Rework-number'),
+
+    path('heatno/fg/',ItemFullReport.as_view() ,name="sales-fg-heat-no-stockwise" ),
 ]

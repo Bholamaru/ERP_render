@@ -438,3 +438,107 @@ class generate_unique_rework_number(APIView):
             return Response({"Rework_no": rework_no}, status=status.HTTP_200_OK)
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.db.models import Sum, F, Value, FloatField
+from django.db.models.functions import Cast, Coalesce
+from collections import defaultdict
+
+from Store.models import MaterialChallan, MaterialChallanTable
+from Production.models import   ProductionEntry
+
+
+def safe_float(value):
+    try:
+        return float(value)
+    except:
+        return 0
+
+
+class ItemFullReport(APIView):
+    """
+    ONE API = HeatNo Summary + Production Summary
+    """
+
+    def get(self, request):
+        item = request.query_params.get("item")
+        operation = request.query_params.get("operation")
+        prod_no = request.query_params.get("prod_no")
+
+        if not item:
+            return Response(
+                {"error": "item parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # =====================================================
+        #         🔹 1) Heat No Wise Qty Summary
+        # =====================================================
+        challans = MaterialChallan.objects.filter(Item__icontains=item)
+
+        if not challans.exists():
+            heat_qty_list = []
+        else:
+            heat_qty_data = (
+                MaterialChallanTable.objects
+                .filter(MaterialChallanDetail__in=challans)
+                .values("HeatNo")
+                .annotate(
+                    total_qty=Sum(
+                        Coalesce(Cast(F("Qty"), FloatField()), Value(0.0))
+                    )
+                )
+                .order_by("HeatNo")
+            )
+
+            heat_qty_list = [
+                {
+                    "HeatNo": entry["HeatNo"] if entry["HeatNo"] else "No HeatNo",
+                    "Qty": entry["total_qty"]
+                }
+                for entry in heat_qty_data
+            ]
+
+        # =====================================================
+        #         🔹 2) Production Operation-wise Lot Summary
+        # =====================================================
+        entries = ProductionEntry.objects.filter(item=item)
+
+        if operation:
+            entries = entries.filter(operation=operation)
+
+        if prod_no:
+            entries = entries.filter(Prod_no=prod_no)
+
+        prod_result = {}
+
+        for e in entries:
+            opno = e.operation
+            lot = (e.lot_no or "").split("|")[0]
+            qty = safe_float(e.prod_qty or 0)
+
+            if opno not in prod_result:
+                prod_result[opno] = defaultdict(float)
+
+            prod_result[opno][lot] += qty
+
+        prod_output = {
+            op: [{"lot_no": lot, "prod_qty": qty} for lot, qty in lots.items()]
+            for op, lots in prod_result.items()
+        }
+
+        # =====================================================
+        #              🔹 FINAL COMBINED RESPONSE
+        # =====================================================
+
+        return Response({
+            "item": item,
+            "heat_qty_summary": heat_qty_list,
+            "production_summary": prod_output
+        }, status=status.HTTP_200_OK)

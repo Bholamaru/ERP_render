@@ -442,7 +442,6 @@ class generate_unique_rework_number(APIView):
 
 
 
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -542,3 +541,224 @@ class ItemFullReport(APIView):
             "heat_qty_summary": heat_qty_list,
             "production_summary": prod_output
         }, status=status.HTTP_200_OK)
+
+
+
+from .serializers import *
+from .models import *
+class InvoiceViewSet(viewsets.ModelViewSet):
+    queryset = Invoice.objects.all()
+    serializer_class = InvoiceSerializer
+
+
+class NewsalesOrederViewSet(viewsets.ModelViewSet):
+    queryset = NewSalesOrder.objects.all()
+    serializer_class= NewSalesOrderSerializer
+
+
+from All_Masters.models import Item
+class CustomerItemListView(APIView):
+    def get(self, request):
+        customers = Item.objects.filter(type='Customer')
+        serializer = ItemSerializer(customers, many=True)
+        return Response({
+            "message": "Customer type data fetched successfully",
+            "count": customers.count(),
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+    
+
+
+from All_Masters.models import ItemTable,TaxDetails
+from All_Masters.serializers import ItemTableSerializer2
+
+class ItemTableListView(APIView):
+    def get(self, request):
+        items = ItemTable.objects.all().order_by('id')
+        serializer = ItemTableSerializer2(items, many=True)
+
+        data = serializer.data  # serialized itemtable data
+
+        # attach tax details manually
+        for item in data:
+            hsn_code = item.get("HSN_SAC_Code")
+
+            if hsn_code:
+                tax = TaxDetails.objects.filter(
+                    HSN_SAC_Code=hsn_code
+                ).values().first()
+                item["tax_details"] = tax
+            else:
+                item["tax_details"] = None
+
+        return Response({
+            "message": "Items fetched successfully",
+            "count": len(data),
+            "data": data
+        })
+
+
+from .utils import create_invoiceno
+class generate_invoice_number(APIView):
+    def get(self ,request):
+        try:
+            invoice_no=create_invoiceno()
+            return Response ({"Invoice_no": invoice_no}, status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+# class LastOperationProdQtyAPI(APIView):
+
+#     def get(self, request):
+#         query = request.query_params.get('q', '').strip()
+#         if not query:
+#             return Response(
+#                 {"error": 'Search query "q" is required'},
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+
+#         item = ItemTable.objects.filter(
+#             Q(Part_Code__icontains=query) |
+#             Q(part_no__icontains=query) |
+#             Q(Name_Description__icontains=query)
+#         ).first()
+
+#         if not item:
+#             return Response(
+#                 {"error": "Item not found"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         bom_items = BOMItem.objects.filter(item=item)
+
+#         if not bom_items.exists():
+#             return Response(
+#                 {"error": "No BOM found for item"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         last_op_data = None
+#         last_op_no = -1
+
+#         for bom in bom_items:
+#             if not bom.OPNo:
+#                 continue
+
+#             try:
+#                 op_no_int = int(bom.OPNo.strip())
+#             except ValueError:
+#                 continue
+
+#             production = ProductionEntry.objects.filter(
+#                 item__icontains=item.Part_Code,
+#                 operation__startswith=bom.OPNo
+#             ).order_by('-id').first()   # 🔥 latest entry for that OP
+
+#             prod_qty = float(production.prod_qty) if production else 0.0
+
+#             # 🔥 Pick highest OPNo
+#             if op_no_int > last_op_no:
+#                 last_op_no = op_no_int
+#                 last_op_data = {
+#                     "part_code": item.Part_Code,
+#                     "part_no": item.part_no,
+#                     "Name_Description": item.Name_Description,
+#                     "OPNo": bom.OPNo,
+#                     "Operation": bom.Operation,
+#                     "prod_qty": prod_qty
+#                 }
+
+#         if not last_op_data:
+#             return Response(
+#                 {"error": "No production data found"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         return Response(
+#             {"last_operation": last_op_data},
+#             status=status.HTTP_200_OK
+#         )
+
+
+from All_Masters.models import BOMItem
+
+class LastOperationProdQtyAPI(APIView):
+
+    def get(self, request):
+        query = request.query_params.get("q", "").strip()
+        if not query:
+            return Response(
+                {"error": 'Search query "q" is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        item = ItemTable.objects.filter(
+            Q(Part_Code__icontains=query) |
+            Q(part_no__icontains=query) |
+            Q(Name_Description__icontains=query)
+        ).first()
+
+        if not item:
+            return Response({"error": "Item not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        bom_items = BOMItem.objects.filter(item=item)
+
+        last_op_no = -1
+        last_bom = None
+
+        # 🔥 Find LAST OPNo
+        for bom in bom_items:
+            if not bom.OPNo:
+                continue
+            try:
+                op_int = int(bom.OPNo.strip())
+            except ValueError:
+                continue
+
+            if op_int > last_op_no:
+                last_op_no = op_int
+                last_bom = bom
+
+        if not last_bom:
+            return Response({"error": "No valid OP found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # 🔥 Get production entries for LAST OP
+        prod_entries = ProductionEntry.objects.filter(
+            item__icontains=item.Part_Code,
+            operation__startswith=last_bom.OPNo
+        )
+
+        lot_map = defaultdict(float)
+        total_prod_qty = 0.0
+
+        for e in prod_entries:
+            lot = (e.lot_no or "").split("|")[0].strip()
+            qty = safe_float(e.prod_qty or 0)
+
+            lot_map[lot] += qty
+            total_prod_qty += qty
+
+        lot_list = [
+            {
+                "lot_no": lot,
+                "prod_qty": round(qty, 3)
+            }
+            for lot, qty in lot_map.items()
+        ]
+
+        return Response(
+            {
+                "last_operation": {
+                    "part_code": item.Part_Code,
+                    "part_no": item.part_no,
+                    "Name_Description": item.Name_Description,
+                    "OPNo": last_bom.OPNo,
+                    "Operation": last_bom.Operation,
+                    "prod_qty": round(total_prod_qty, 3),
+                    "lots": lot_list
+                }
+            },
+            status=status.HTTP_200_OK
+        )

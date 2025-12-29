@@ -340,6 +340,7 @@ from .serializers import GrnGenralDetailSerializer
 class GrnGenralDetailViewSet(viewsets.ModelViewSet):
     queryset = GrnGenralDetail.objects.all()
     serializer_class = GrnGenralDetailSerializer
+    
 
 
 from rest_framework import status
@@ -424,6 +425,8 @@ class GrnDetailAPIView(generics.ListAPIView):
                 "EWayBillNo": grn.EWayBillNo,
                 "EWayBillDate": grn.EWayBillDate,
                 "PDF_Link": f"/Store/pdf/{grn.id}/",
+                "Edit": f"/Store/grn/edit/{grn.id}/",
+                "delete":f"/Store/grn/delete/{grn.id}/",
                 "Items": items_data
             })
         return Response(data)
@@ -756,7 +759,8 @@ class GateInwardSummaryAPIView(APIView):
                 "Invoicedate": entry.Invoicedate,
                 "User": entry.created_by.username if entry.created_by else None,
                 "View": f"/Store/gate-inward/pdf/{entry.id}/",
-                "Edit": f"/Store/api/general-details/{entry.id}/"
+                "Edit": f"/Store/api/general-details/{entry.id}/",
+                "Delete": f"/Store/gate/entry/delete/{entry.id}/"
             })
 
         return Response(data) 
@@ -3930,3 +3934,116 @@ class GenerateUniqueChallanNumber(APIView):
                 {"error": f"Unexpected error: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class GateEntryDeleteAPI(APIView):
+    def delete(self,request,gate_id):
+        try:
+            entry=GeneralDetails.objects.get(id=gate_id)
+        except GeneralDetails.DoesNotExist:
+            return Response(
+                {"error":"gate entry not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        entry.delete()
+        return Response(
+            {"message":'Gate entry delete successfuly'},
+            status=status.HTTP_200_OK
+        )
+
+
+
+# class EditGrnGenralDetailAPI(APIView):
+#     def put(self, request, id):
+#         try:
+#             grn = GrnGenralDetail.objects.get(id=id)
+#         except GrnGenralDetail.DoesNotExist:
+#             return Response({"error": "GRN not found"}, status=status.HTTP_404_NOT_FOUND)
+
+#         serializer = GrnGenralDetailSerializer(grn, data=request.data, partial=True)
+
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response({
+#                 "message": "GRN updated successfully",
+#                 "data": serializer.data
+#             }, status=status.HTTP_200_OK)
+
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EditGrnGenralDetailAPI(APIView):
+
+    # ---------- GET (Fetch data for edit) ----------
+    def get(self, request, id):
+        try:
+            grn = GrnGenralDetail.objects.get(id=id)
+        except GrnGenralDetail.DoesNotExist:
+            return Response({"error": "GRN not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # ------ Prepare Items ------
+        grn_items = grn.NewGrnList.all()
+        items_data = [
+            {
+                "ItemNoCode": item.ItemNoCode,
+                "Description": item.Description,
+                "UnitCode": item.UnitCode,
+                "ChalQty": item.ChalQty,
+                "ShortExcessQty": item.ShortExcessQty,
+                "Rate": item.Rate
+            }
+            for item in grn_items
+        ]
+
+        # ------ Prepare Main GRN Data ------
+        data = {
+            "id": grn.id,
+            "Plant": grn.Plant,
+            "GrnNo": grn.GrnNo,
+            "GrnDate": grn.GrnDate,
+            "GrnTime": grn.GrnTime,
+            "InvoiceNo": grn.InvoiceNo,
+            "InvoiceDate": grn.InvoiceDate,
+            "ChallanNo": grn.ChallanNo,
+            "ChallanDate": grn.ChallanDate,
+            "LrNo": grn.LrNo,
+            "VehicleNo": grn.VehicleNo,
+            "Transporter": grn.Transporter,
+            "SelectSupplier": grn.SelectSupplier,
+            "SelectPO": grn.SelectPO,
+            "SelectItem": grn.SelectItem,
+            "EWayBillNo": grn.EWayBillNo,
+            "EWayBillDate": grn.EWayBillDate,
+            "Items": items_data
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    # ---------- PUT (Update data) ----------
+    def put(self, request, id):
+        try:
+            grn = GrnGenralDetail.objects.get(id=id)
+        except GrnGenralDetail.DoesNotExist:
+            return Response({"error": "GRN not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = GrnGenralDetailSerializer(grn, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "message": "GRN updated successfully",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeleteGrnGenralDetailAPI(APIView):
+    def delete(self, request, id):
+        try:
+            grn = GrnGenralDetail.objects.get(id=id)
+        except GrnGenralDetail.DoesNotExist:
+            return Response({"error": "GRN not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        grn.delete()
+        return Response({"message": "GRN deleted successfully"}, status=status.HTTP_200_OK)

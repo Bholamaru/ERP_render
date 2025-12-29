@@ -15,6 +15,8 @@ from .views import outwardchallanview
 from .views import supplierview 
 from .views import ItemFullReport
 from .import views 
+from .views import *
+
 
 router = DefaultRouter()
 router.register(r'onwardchallan', OnwardChallanViewSet)
@@ -22,9 +24,12 @@ router.register(r'transportdetails', transportdetailsview)
 router.register(r'vehicaldetails', vehicaldetailsview)
 router.register(r'outwardchallan',outwardchallanview)
 router.register(r'onward-challans', OnwardChallanViewSet, basename='onward-challan')
+router.register(r'invoice', InvoiceViewSet, basename='invoice')
+router.register(r'newsalesorder' ,NewsalesOrederViewSet, basename='NewSalesOreder')
+
 
 urlpatterns=router.urls+[
-    path("generate-challan-no/", generate_unique_challan_number.as_view(), name='generate-challan-no'),
+   path("generate-challan-no/", generate_unique_challan_number.as_view(), name='generate-challan-no'),
    path("deletechallan/<int:id>/",deletechallan.as_view(), name="deletechallan"),
    path("deletetransportdetails/<str:name>/",deletetransportdetails.as_view() , name="deletetransportdetails"),
    path("edittransportdetails/<str:name>/",edittransportdetails.as_view(), name='edittransportdetails'),
@@ -41,4 +46,11 @@ urlpatterns=router.urls+[
     path("genrate-rework-no",generate_unique_rework_number.as_view(),name='Genrate-Rework-number'),
 
     path('heatno/fg/',ItemFullReport.as_view() ,name="sales-fg-heat-no-stockwise" ),
+    path('items/customers-list/', CustomerItemListView.as_view(),name="Custerm-view-for-newsales-order"),
+
+    path('items-list/', ItemTableListView.as_view(), name='item-table-list'),
+
+    path('create/invoice_no',generate_invoice_number.as_view(), name='create-invoice-no-for-gst-invoice'),
+    
+    path('wip/stock/get/',LastOperationProdQtyAPI.as_view(),name='wip-stcok-last-opno-stcok-get'),
 ]

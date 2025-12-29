@@ -1,0 +1,176 @@
+.NewSalesOrderMaster {
+    margin-top: -10px;
+  }
+  
+  /* Header Styling */
+  .NewSalesOrder-header {
+    background-color: #f8f9fa; /* Light background for header */
+    border-bottom: 1px solid #dee2e6; /* Border for header */
+    padding: 10px 15px; /* Padding around header */
+    border-radius: 5px;
+  }
+  
+  .NewSalesOrder-header .header-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0;
+  }
+  
+  /* Form and Inputs */
+  /* Additional spacing for table cells */
+  .NewSalesOrderMaster .table-bordered td, .table-bordered th {
+    padding: 8px;
+    vertical-align: middle;
+    text-align: center;
+  }
+  
+  /* Adjust icon button sizes for consistent appearance */
+  .NewSalesOrderMaster .btn-outline-secondary {
+    padding: 4px 8px;
+    font-size: 1rem;
+  }
+  
+  /* Responsive font and padding adjustments */
+  .NewSalesOrder-main label {
+    font-size: 0.875rem;
+  }
+  /* General Styling */
+  body {
+    font-family: Arial, sans-serif;
+   
+    margin: 0;
+    padding: 0;
+  }
+  
+  .NewSalesOrder-main {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  .NewSalesOrder-bottom{
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  .NewSalesOrder-tabs .nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+  }
+  
+  .NewSalesOrder-tabs .nav-tabs .nav-link {
+    font-weight: bold;
+    color: #495057;
+    padding: 10px 15px;
+    border: 1px solid transparent;
+    border-radius: 5px 5px 0 0;
+  }
+  
+  .NewSalesOrder-tabs .nav-tabs .nav-link.active {
+    color: #ffffff;
+    background-color: #007bff;
+    border-color: #007bff;
+    padding: 5px;
+    border-radius: 5px;
+    border: none;
+  }
+  
+  .NewSalesOrder .tab-content {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border: none;
+    
+    border-radius: 0 0 10px 10px;
+  
+  }
+  
+  .NewSalesOrder-main label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+  }
+  
+  .NewSalesOrder-main  input, select {
+    width: 100%;
+    border-radius: 5px;
+  }
+  
+  
+  
+  .NewSalesOrder-main input.form-control,
+  .NewSalesOrder-main select.form-control {
+    padding: 8px;
+  
+  }
+  
+  /* Table Styling */
+  .NewSalesOrder-main .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .NewSalesOrder-main   .table th,
+  .NewSalesOrder-main .table td {
+    text-align: left;
+    padding: 8px;
+    
+  }
+  
+  .NewSalesOrder-main .table th {
+  
+    font-weight: bold;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .tab-content .row {
+      flex-direction: column;
+    }
+  
+    .row .col-md-4 {
+      width: 100%;
+      margin-bottom: 15px;
+    }
+  
+    .btn {
+      width: auto;
+      margin: 0 5px;
+    }
+  
+    .NewSalesOrder-tabs .nav-tabs .nav-link {
+      font-size: 12px;
+      padding: 8px;
+    }
+  }
+  
+  .generateirn
+  {
+    background-color: green;
+    margin-right: 10px;
+    border-radius: 30px;
+    width: 130px;
+    color: white;
+  }
+  .cancelirn
+  {
+    background-color: red;
+    border-radius: 30px;
+    color: white;
+  }
+  .cllllr{
+    background-color: #007bff;
+    color: white;
+    padding: 5px;
+  }
+
+  @media (max-width: 576px) {
+    .NewSalesOrder-main {
+      padding: 10px;
+    }
+  
+    .table th, .table td {
+      font-size: 12px;
+      padding: 5px;
+    }
+  }
+  

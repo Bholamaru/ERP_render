@@ -90,7 +90,8 @@ urlpatterns = [
     path('material-challan/delete/<int:pk>/', views.delete_material_challan, name='delete_material_challan'),
     path('generate-challan/', GenerateUniqueChallanNumber.as_view(), name='generate-challan-materiall_issue'),
 
-
-    
+    path('gate/entry/delete/<int:gate_id>',GateEntryDeleteAPI.as_view(), name='Gate-Entry-delete'),
+    path("grn/edit/<int:id>/", EditGrnGenralDetailAPI.as_view(),name='PurchaseGrn-Edit'),
+    path("grn/delete/<int:id>/", DeleteGrnGenralDetailAPI.as_view(), name='purchaseGrn-delete'),
 
 ]

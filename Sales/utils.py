@@ -1,6 +1,7 @@
 from datetime import datetime
 from .models import onwardchallan
 
+
 def create_challanNumber():
         current_year = datetime.now().year % 100  # e.g., 25
         next_year = (datetime.now().year + 1) % 100  # e.g., 26
@@ -40,3 +41,16 @@ def create_reworknumber():
             return rework_no
     
     raise ValueError("No available Rework numbers left.")
+
+
+from .models import Invoice
+
+def create_invoiceno():
+    current_year=datetime.now().year % 100
+    next_year =(datetime.now().year + 1)% 100
+    prefix = f"{ current_year:02d}{next_year:02d}"
+    for counter in range(1, 10000):
+        invoice_no = f"{prefix}{counter:05d}"
+        if not Invoice.objects.filter(invoice_no = invoice_no).exists():
+            return invoice_no
+    raise ValueError("NO available challan numbers left for the current year range")

@@ -29,3 +29,5 @@ class outwardchallanAdmin(admin.ModelAdmin):
     pass
 
 admin.site.register(OnwardChallanItem)
+admin.site.register(NewSalesOrder)
+admin.site.register(NewSalesItemdetails)

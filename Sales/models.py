@@ -161,3 +161,129 @@ class vehicaldetails(models.Model):
     vehical_no=models.CharField(max_length=50,validators=[vehicle_no_validator])
     def __str__(self):
         return f'{self.vehical_no}'
+
+
+
+
+class Invoice(models.Model):
+    invoice_no=models.CharField(max_length=100,blank=True,null=True)
+    invoice_Date=models.DateField(blank=True,null=True)
+    invoice_time=models.TimeField(blank=True,null=True)
+    payment_Date=models.DateField(blank=True,null=True)
+    note=models.TextField(blank=True,null=True)
+    date_of_removal=models.DateField(blank=True,null=True)
+    time=models.TimeField(blank=True,null=True)
+    mode_of_trans=models.CharField(max_length=100,blank=True,null=True)
+    freight=models.CharField(max_length=100,blank=True,null=True)
+    vehical_no=models.CharField(max_length=50,blank=True,null=True)
+    transporter=models.CharField(max_length=50,blank=True,null=True)
+    bill_to=models.CharField(max_length=50,blank=True,null=True)
+    ship_to=models.CharField(max_length=50,blank=True,null=True)
+    addr_code=models.CharField(max_length=20,blank=True,null=True)
+    l_r_gc_note=models.TextField(max_length=200,blank=True,null=True)
+    place_of_supply=models.CharField(max_length=200,blank=True,null=True)
+    Eway_bill_Date=models.DateField(blank=True,null=True)
+    Eway_bill_no=models.CharField(max_length=50,blank=True,null=True)
+    destenation_code=models.CharField(max_length=50,blank=True,null=True)
+    note_remark=models.TextField(max_length=100,blank=True,null=True)
+    pdi_no=models.IntegerField(blank=True,null=True)
+    bank=models.CharField(max_length=50,blank=True,null=True)
+    d_c_no=models.CharField(max_length=50,blank=True,null=True)
+    d_c_Date=models.DateField(blank=True,null=True)
+    delivery_terms=models.TextField(max_length=200,blank=True,null=True)
+
+
+class InvoiceItemdetails(models.Model):
+    invoice = models.ForeignKey(Invoice, related_name='items', on_delete=models.CASCADE)
+    plant=models.CharField(max_length=100,blank=True,null=True)
+    series=models.CharField(max_length=100,blank=True,null=True)
+    invoice_type=models.CharField(max_length=100,blank=True,null=True)
+    invoice_no=models.CharField(max_length=100,blank=True,null=True)
+    customer=models.CharField(max_length=250,blank=True,null=True)
+    po_no=models.CharField(max_length=250,blank=True,null=True)
+    date=models.DateField(blank=True,null=True)
+    stock=models.CharField(max_length=250,blank=True , null=True)
+    description=models.CharField(max_length=250,blank=True,null=True)
+    rate=models.CharField(max_length=250,blank=True,null=True)
+    po_qty=models.CharField(max_length=250,blank=True,null=True)
+    bal_qty=models.IntegerField(blank=True,null=True)
+    inv_qty=models.IntegerField(blank=True,null=True)
+    pkg_qty=models.IntegerField(blank=True,null=True)
+    type_of_packing=models.CharField(max_length=250,blank=True,null=True)
+
+
+class GstdetailsInvoice(models.Model):
+    invoice=models.ForeignKey(Invoice,related_name='GSTdetails', on_delete=models.CASCADE)
+    base_value=models.IntegerField(max_length=10,blank=True,null=True)
+    disc_amt=models.IntegerField(max_length=10,blank=True,null=True)
+    rev_base_crg=models.IntegerField(max_length=10,blank=True,null=True)
+    rev_charg_amt=models.IntegerField(max_length=10,blank=True,null=True)
+    tcs=models.IntegerField(max_length=10,blank=True,null=True)
+    assessble_value=models.IntegerField(max_length=10,blank=True,null=True)
+    cgst=models.IntegerField(max_length=10,blank=True,null=True)
+    sgst=models.IntegerField(max_length=10,blank=True,null=True)
+    igst=models.IntegerField(max_length=10,blank=True,null=True)
+    utgst=models.IntegerField(max_length=10,blank=True,null=True)
+    pack_fwrd=models.IntegerField(max_length=10,blank=True,null=True)
+    transport_crg=models.IntegerField(max_length=10,blank=True,null=True)
+    freight_crg=models.IntegerField(max_length=10,blank=True,null=True)
+    other_crg=models.IntegerField(max_length=10,blank=True,null=True)
+    grand_total=models.IntegerField(max_length=50,blank=True,null=True)
+
+
+
+
+from django.utils import timezone
+class NewSalesOrder(models.Model):
+    plant=models.CharField(max_length=100,blank=True,null=True)
+    order_type=models.CharField(max_length=100,blank=True,null=True)
+    customer=models.CharField(max_length=100,blank=True,null=True)
+    cust_po=models.CharField(max_length=100,blank=True,null=True)
+    cust_date=models.DateField(auto_created=True)
+    pay_day=models.CharField(max_length=100,blank=True,null=True)
+    pay_note=models.CharField(max_length=100,blank=True,null=True)
+    valid_up=models.DateField(blank=True,null=True)
+    file = models.FileField(upload_to='newsales/', null=True,blank=True )
+    # file=models.fiel(upload_to='newsales')
+    so_date=models.DateField(auto_now_add=True)
+    po_rec_date=models.DateField(auto_now_add=True)
+    incoterms=models.CharField(max_length=100,blank=True,null=True)
+    ship_to=models.CharField(max_length=100,blank=True,null=True)
+    ship_to_add_code= models.CharField(max_length=100,blank=True,null=True)
+    ccn_no=models.CharField(max_length=100,blank=True,null=True)
+    delivery_date=models.DateField(blank=True,null=True)
+    buyer_name=models.CharField(max_length=100,blank=True,null=True)
+    packing=models.CharField(max_length=100,blank=True,null=True)
+    shift=models.CharField(max_length=100,blank=True,null=True)
+    shift=models.DateField(blank=True,null=True)
+    plan_date=models.DateField(auto_now_add=True)
+    l_c_no=models.CharField(max_length=100,blank=True,null=True)
+    sales_person=models.CharField(max_length=100,blank=True,null=True)
+    site_name=models.CharField(max_length=100,null=True ,blank=True)
+    project_name=models.CharField(max_length=100, blank=True,null=True)
+    terms= models.CharField(max_length=100,blank=True, null=True)
+
+
+class NewSalesItemdetails(models.Model):
+    newsaleoreder=models.ForeignKey(NewSalesOrder,on_delete=models.CASCADE,related_name='item')
+    rev_no=models.CharField(max_length=100,blank=True,null=True)
+    item_code=models.CharField(max_length=100,blank=True,null=True)
+    line_no=models.CharField(max_length=100,blank=True,null=True)
+    pr_no=models.CharField(max_length=100,blank=True,null=True)
+    item_description=models.CharField(max_length=100,blank=True,null=True)
+    rate=models.CharField(max_length=100,blank=True,null=True)
+    desc=models.CharField(max_length=100,blank=True,null=True)
+    qty=models.CharField(max_length=100,blank=True,null=True)
+    uom=models.CharField(max_length=100,blank=True,null=True)
+    rm_type=models.CharField(max_length=100,blank=True,null=True)
+    item_wt=models.CharField(max_length=100,blank=True,null=True)
+    pkg_trans=models.CharField(max_length=100,blank=True,null=True)
+    plan_date=models.DateField(auto_now_add=True)
+    due_date=models.DateField(blank=True,null=True)
+    type=models.CharField(max_length=100,blank=True,null=True)
+    item_category=models.CharField(max_length=100,blank=True,null=True)
+    remark=models.CharField(max_length=250,blank=True,null=True)
+
+
+
+

@@ -5,6 +5,7 @@ from .models import vehicaldetails
 from .models import outwardchallan, OnwardChallanItem
 from Store.serializers import GrnGenralDetailSerializer
 from Store.models import GrnGenralDetail
+from .models import *
 # from .views import generate_unique_challan_number
 
 class OnwardChallanSerializer(serializers.ModelSerializer):
@@ -143,3 +144,87 @@ class OnwardChallanSerializer(serializers.ModelSerializer):
     #     return challan
 
 
+
+
+
+from rest_framework import serializers
+from .models import Invoice, InvoiceItemdetails
+
+class InvoiceItemdetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvoiceItemdetails
+        fields = '__all__'
+        extra_kwargs = {
+            'invoice': {'required': False}  
+        }
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    items = InvoiceItemdetailsSerializer(many=True)  # nested items
+
+    class Meta:
+        model = Invoice
+        fields = '__all__'
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('items', [])
+
+        # Create main Invoice
+        invoice = Invoice.objects.create(**validated_data)
+
+        # Create related items
+        for item in items_data:
+            InvoiceItemdetails.objects.create(invoice=invoice, **item)
+
+        return invoice
+
+
+
+class NewSalesItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewSalesItemdetails
+        # fields = '__all__'
+        exclude = ["newsaleoreder"]
+
+
+class NewSalesOrderSerializer(serializers.ModelSerializer):
+    item = NewSalesItemSerializer(many=True,required=False)
+
+    class Meta:
+        model = NewSalesOrder
+        fields = '__all__'
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('item', [])
+        order = NewSalesOrder.objects.create(**validated_data)
+
+        for item in items_data:
+            NewSalesItemdetails.objects.create(
+                newsaleoreder=order,
+                **item
+            )
+        return order
+
+
+# class NewSalesOrderSerializer(serializers.ModelSerializer):
+#     item = NewSalesItemSerializer(many=True, read_only=True)
+#     class Meta:
+#         model = NewSalesOrder
+#         fields = '__all__'
+    
+#     def create(self, validated_data):
+#         items_data = validated_data.pop('item', [])
+#         order = NewSalesOrder.objects.create(**validated_data)
+
+#         for item in items_data:
+#             NewSalesItemdetails.objects.create(
+#                 newsaleoreder=order,
+#                 **item
+#             )
+#         return order
+
+from All_Masters.models import Item       
+class ItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Item
+        fields = "__all__"

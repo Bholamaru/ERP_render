@@ -27,7 +27,9 @@ SECRET_KEY = 'django-insecure-jo3eq46wyab+2bd+@i@d%!#)s81_#zv@qai49qvklxow0e1*ft
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['erp-render.onrender.com', 'localhost', '127.0.0.1']
+
 CORS_ALLOW_ALL_ORIGINS = True
 
 

@@ -160,7 +160,7 @@ class InvoiceItemdetailsSerializer(serializers.ModelSerializer):
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
-    items = InvoiceItemdetailsSerializer(many=True)  # nested items
+    items = InvoiceItemdetailsSerializer(many=True, required=False)  # nested items
 
     class Meta:
         model = Invoice

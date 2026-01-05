@@ -31,3 +31,6 @@ class outwardchallanAdmin(admin.ModelAdmin):
 admin.site.register(OnwardChallanItem)
 admin.site.register(NewSalesOrder)
 admin.site.register(NewSalesItemdetails)
+admin.site.register(Invoice)
+admin.site.register(InvoiceItemdetails)
+admin.site.register(GstdetailsInvoice)

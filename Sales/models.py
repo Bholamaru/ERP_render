@@ -286,4 +286,51 @@ class NewSalesItemdetails(models.Model):
 
 
 
+class DebitNote(models.Model):
+    type =models.CharField(max_length=50,blank=True,null=True)
+    notetype=models.CharField(max_length=100,blank=True,null=True)
+    debit_note_no=models.CharField(max_length=100 ,blank=True,null=True)
+    debit_note_date=models.DateField()
+    party_name=models.CharField(max_length=250,blank=True,null=True)
+    mode_of_transport=models.CharField(max_length=100,blank=True,null=True)
+    lr_gc_note_no=models.CharField(max_length=100,blank=True,null=True)
+    eway_bill_no=models.CharField(max_length=100,blank=True,null=True)
+    eway_bill_date=models.DateField()
+    vehical_no=models.CharField(max_length=100,blank=True,null=True)
+    traspoter=models.CharField(max_length=100,blank=True,null=True)
+    po_no=models.CharField(max_length=100,blank=True,null=True)
+    po_date=models.DateField()
+    invoice_no=models.CharField(max_length=100,blank=True,null=True)
+    invoice_date=models.DateField()
+    remark=models.CharField(max_length=250,blank=True,null=True)
+    is_service_dn=models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return self.debit_note_no
+
+class DebitNoteIteam(models.Model):
+    debit_note = models.ForeignKey(DebitNote,related_name="items",on_delete=models.CASCADE)
+    grn_no=models.CharField(max_length=100,blank=True,null=True)
+    grn_date=models.DateField()
+    item_code=models.CharField(max_length=100,blank=True,null=True)
+    item_description=models.CharField(max_length=100,blank=True,null=True)
+    hsn_code=models.CharField(max_length=100,blank=True,null=True)
+    grn_qty=models.DecimalField(max_digits=12,decimal_places=4,blank=True,null=True)
+    stock=models.DecimalField(max_digits=12,decimal_places=4,blank=True,null=True)
+    remark=models.CharField(max_length=250,blank=True,null=True)
+    reason=models.CharField(max_length=100,blank=True,null=True)
+    quantity=models.CharField(max_length=100,blank=True,null=True)
+    unit=models.CharField(max_length=100,blank=True,null=True)
+    Rate=models.DecimalField(max_digits=12,decimal_places=4,blank=True,null=True)
+    amount=models.DecimalField(max_digits=12,decimal_places=4,blank=True,null=True)
+    transport_charges = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cgst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    sgst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    igst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    utgst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tcs = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tds_on_basic = models.BooleanField(default=True)
+    tds_on_grand_total = models.BooleanField(default=False)
+    grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)

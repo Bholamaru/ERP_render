@@ -784,3 +784,232 @@ class LastOperationProdQtyAPI(APIView):
             },
             status=status.HTTP_200_OK
         )
+
+
+class DebitNoteViewSet(viewsets.ModelViewSet):
+    queryset = DebitNote.objects.prefetch_related("items").all()
+    serializer_class = DebitNoteSerializer
+
+from .utils import create_debitNote
+class GenerateDebitNoteNumber(APIView):
+    def get(self, request):
+        try:
+            debit_note_no = create_debitNote()
+            return Response(
+                {"debit_note_no": debit_note_no},
+                status=status.HTTP_200_OK
+            )
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+
+
+
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+from num2words import num2words
+
+from Purchase.models import PurchasePO
+from All_Masters.models import Item as Item2
+
+
+# class PurchasePOBySupplierAPIView(APIView):
+#     def get(self, request):
+#         supplier_name = request.query_params.get("supplier")
+
+#         if not supplier_name:
+#             return Response(
+#                 {"error": "supplier query parameter is required"},
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+
+#         pos = PurchasePO.objects.prefetch_related(
+#             "Item_Detail_Enter",
+#             "Gst_Details",
+#             "Item_Details_Other",
+           
+#         ).filter(Supplier__iexact=supplier_name)
+
+#         result = []
+
+#         for po in pos:
+
+#             # 🔹 Supplier Master (same as PDF)
+#             supplier_item = Item2.objects.filter(number=po.CodeNo).first()
+
+#             # 🔹 Item Details
+#             item_details = []
+#             for i in po.Item_Detail_Enter.all():
+#                 item_details.append({
+#                     "item": i.Item,
+#                     "description": i.ItemDescription,
+#                     "size": i.ItemSize,
+#                     "rate": i.Rate,
+#                     "discount": i.Disc,
+#                     "qty": i.Qty,
+#                     "unit": i.Unit,
+#                     "particular": i.Particular,
+#                     "mill_name": i.Mill_Name,
+                    
+#                 })
+
+#             # 🔹 GST Details
+#             gst_details = []
+#             total_gst_sum = 0
+
+#             for gst in po.Gst_Details.all(): 
+#                 gst_details.append({
+#                     "item_code": gst.ItemCode,
+#                     "hsn": gst.HSN,
+#                     "rate": gst.Rate,
+#                     "qty": gst.Qty,
+#                     "sub_total": gst.SubTotal,
+#                     "discount": gst.Discount,
+#                     "packing": gst.Packing,
+#                     "transport": gst.Transport,
+#                     "assessable_value": gst.AssValue,
+#                     "cgst": gst.CGST,
+#                     "sgst": gst.SGST,
+#                     "igst": gst.IGST,
+#                     "vat": gst.Vat,
+#                     "cess": gst.Cess,
+#                     "total": gst.Total,
+#                 })
+            
+
+#                 if gst.Total:
+#                     total_gst_sum += gst.Total
+
+#             # 🔹 Amount in words (same as PDF)
+#             amount_words = f"Rs. {num2words(int(total_gst_sum), lang='en_IN').title()} Only"
+
+#             result.append({
+#                 "po_basic_details": {
+#                     "PoNo": po.PoNo,
+#                     "PoDate": po.PoDate,
+#                     "Field": po.field,
+#                     "Supplier": po.Supplier,
+#                     "Plant": po.Plant,
+#                     "Series": po.Series,
+#                     "PaymentTerms": po.PaymentTerms,
+#                     "DeliveryDate": po.DeliveryDate,
+#                     "ApprovedStatus": po.Approved_Status,
+#                 },
+                
+#                 "item_details": item_details,
+#                 "gst_details": gst_details,
+                            
+               
+#                 "total_gst_sum": total_gst_sum,
+#                 "total_in_words": amount_words,
+#             })
+
+#         return Response(result, status=status.HTTP_200_OK)
+
+
+
+from datetime import datetime
+from Purchase.models import PurchasePO
+from All_Masters.models import Item as Item2
+
+
+class PurchasePOBySupplierAPIView(APIView):
+    def get(self, request):
+        supplier_name = request.query_params.get("supplier")
+        from_date = request.query_params.get("from_date")
+        to_date = request.query_params.get("to_date")
+
+        if not supplier_name:
+            return Response(
+                {"error": "supplier query parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        pos = PurchasePO.objects.prefetch_related(
+            "Item_Detail_Enter",
+            "Gst_Details",
+            "Item_Details_Other",
+        ).filter(Supplier__iexact=supplier_name)
+
+        # 🔹 Date range filter
+        if from_date and to_date:
+            try:
+                from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+                to_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+                pos = pos.filter(PoDate__range=[from_date, to_date])
+            except ValueError:
+                return Response(
+                    {"error": "Invalid date format. Use YYYY-MM-DD"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        result = []
+
+        for po in pos:
+
+            # 🔹 Item Details
+            item_details = []
+            for i in po.Item_Detail_Enter.all():
+                item_details.append({
+                    "item": i.Item,
+                    "description": i.ItemDescription,
+                    "size": i.ItemSize,
+                    "rate": i.Rate,
+                    "discount": i.Disc,
+                    "qty": i.Qty,
+                    "unit": i.Unit,
+                    "particular": i.Particular,
+                    "mill_name": i.Mill_Name,
+                })
+
+            # 🔹 GST Details
+            gst_details = []
+            total_gst_sum = 0
+
+            for gst in po.Gst_Details.all():
+                gst_details.append({
+                    "item_code": gst.ItemCode,
+                    "hsn": gst.HSN,
+                    "rate": gst.Rate,
+                    "qty": gst.Qty,
+                    "sub_total": gst.SubTotal,
+                    "discount": gst.Discount,
+                    "packing": gst.Packing,
+                    "transport": gst.Transport,
+                    "assessable_value": gst.AssValue,
+                    "cgst": gst.CGST,
+                    "sgst": gst.SGST,
+                    "igst": gst.IGST,
+                    "vat": gst.Vat,
+                    "cess": gst.Cess,
+                    "total": gst.Total,
+                })
+
+                if gst.Total:
+                    total_gst_sum += gst.Total
+
+            amount_words = f"Rs. {num2words(int(total_gst_sum), lang='en_IN').title()} Only"
+
+            result.append({
+                "po_basic_details": {
+                    "PoNo": po.PoNo,
+                    "PoDate": po.PoDate,
+                    "Field": po.field,
+                    "Supplier": po.Supplier,
+                    "Plant": po.Plant,
+                    "Series": po.Series,
+                    "PaymentTerms": po.PaymentTerms,
+                    "DeliveryDate": po.DeliveryDate,
+                    "ApprovedStatus": po.Approved_Status,
+                },
+                "item_details": item_details,
+                "gst_details": gst_details,
+                "total_gst_sum": total_gst_sum,
+                "total_in_words": amount_words,
+            })
+
+        return Response(result, status=status.HTTP_200_OK)

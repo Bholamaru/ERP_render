@@ -2272,3 +2272,64 @@ class BOMItemDeleteAPI(APIView):
             {"message": "BOM item deleted successfully"},
             status=status.HTTP_200_OK
         )
+    
+
+
+# for life cycle time list
+class Cycletimemasterlist(APIView):
+    def get(self, request):
+        bom_items = BOMItem.objects.select_related('item')
+
+        if not bom_items.exists():
+            return Response(
+                {"message": "No BOM data found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = BOMItemFlatSerializer(bom_items, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+
+
+class Cyclemasterlistitem(APIView):
+    def get(self, request):
+        part_no = request.GET.get("part_no")
+
+        if not part_no:
+            return Response(
+                {"error": "part_no is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        bom_items = (
+            BOMItem.objects
+            .select_related("item")
+            .filter(item__part_no=part_no)
+            .order_by("OPNo")
+        )
+
+        if not bom_items.exists():
+            return Response(
+                {"message": "No data found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        item = bom_items.first().item
+
+        operations = []
+        for bom in bom_items:
+            operations.append({
+                "op_no": bom.OPNo,
+                "part_code": bom.PartCode,
+                "operation": bom.Operation
+            })
+
+        response_data = {
+            "part_no": item.part_no,
+            "item_desc": item.Name_Description,
+            "operations": operations
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)

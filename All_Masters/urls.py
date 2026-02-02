@@ -180,6 +180,9 @@ urlpatterns = [
 
     path('supplier/delete/<int:item_id>', ItemDeleteAPI.as_view() , name='supplier-item-delete' ),
     path('item/delete/<int:item_id>' , ItemtableDeleteAPI.as_view() , name='Item-table-delete'),
-    path('bom/delete/<int:bom_id>', BOMItemDeleteAPI.as_view(), name='bomitem-delete'),
+    path('bom/delete/<int:bom_id>', BOMItemDeleteAPI.as_view(), name='bomitem-delete'),    
+    
+    path('cycle/time/list' , Cycletimemasterlist.as_view(),name='life-cycle-time-list'),
+    path("cycle/master/item/", Cyclemasterlistitem.as_view(), name='cycle-item-dropdown-list'),
 
 ]

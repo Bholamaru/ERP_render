@@ -935,3 +935,27 @@ class BOMItemSerializer5(serializers.ModelSerializer):
     def get_BomPartCode(self, obj):
         return f"{obj.BomPartCode} | {obj.PartCode} | Steel part"
     
+
+
+
+
+# for life cycle time 
+from rest_framework import serializers
+from .models import BOMItem
+
+class BOMItemFlatSerializer(serializers.ModelSerializer):
+    item_no = serializers.CharField(source='item.part_no')
+    item_desc = serializers.CharField(source='item.Name_Description')
+    op_no = serializers.CharField(source='OPNo')
+    part_code = serializers.CharField(source='PartCode')
+    machine_type = serializers.CharField(source='Operation')
+
+    class Meta:
+        model = BOMItem
+        fields = [
+            'item_no',
+            'item_desc',
+            'op_no',
+            'part_code',
+            'machine_type'
+        ]

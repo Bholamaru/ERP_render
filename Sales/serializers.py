@@ -228,3 +228,33 @@ class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
         fields = "__all__"
+
+
+
+
+
+class DebitNoteItemSerializer(serializers.ModelSerializer):
+    debit_note = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = DebitNoteIteam
+        fields = "__all__"
+
+class DebitNoteSerializer(serializers.ModelSerializer):
+    items = DebitNoteItemSerializer(many=True)
+
+    class Meta:
+        model = DebitNote
+        fields = "__all__"
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items")
+        debit_note = DebitNote.objects.create(**validated_data)
+
+        for item in items_data:
+            DebitNoteIteam.objects.create(
+                debit_note=debit_note,
+                **item
+            )
+
+        return debit_note

@@ -26,6 +26,7 @@ router.register(r'outwardchallan',outwardchallanview)
 router.register(r'onward-challans', OnwardChallanViewSet, basename='onward-challan')
 router.register(r'invoice', InvoiceViewSet, basename='invoice')
 router.register(r'newsalesorder' ,NewsalesOrederViewSet, basename='NewSalesOreder')
+router.register(r'debitnote',DebitNoteViewSet,basename='Debit-note')
 
 
 urlpatterns=router.urls+[
@@ -53,4 +54,7 @@ urlpatterns=router.urls+[
     path('create/invoice_no',generate_invoice_number.as_view(), name='create-invoice-no-for-gst-invoice'),
     
     path('wip/stock/get/',LastOperationProdQtyAPI.as_view(),name='wip-stcok-last-opno-stcok-get'),
+    path('debit/no', GenerateDebitNoteNumber.as_view(), name='genrate-debit-note-no'),
+    path("purchase-po/by-supplier/", PurchasePOBySupplierAPIView.as_view(), name='debit-note-purchase-grn-data'),
+
 ]

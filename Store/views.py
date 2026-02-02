@@ -2739,7 +2739,7 @@ class WIPStockreport(APIView):
                     item_dict = {
                         "ItemDescription": inv_item.ItemDescription,
                         "ChallanQty": float(extract_number(inv_item.ChallanQty)),
-                        "InQtyKg": float(extract_number(getattr(inv_item, "InQtyKg", 0))),
+                        "InQtyNOS": float(extract_number(getattr(inv_item, "InQtyNOS", 0))),
                         "ItemCode": None
                     }
                    
@@ -3292,115 +3292,143 @@ class WIPStockreport(APIView):
 
 from Sales.models import onwardchallan
 
-# class SubcornStock(APIView):
-#     def get(self, request):
-#         supplier = request.query_params.get("q")  # ?q=TATA
-#         if not supplier:
-#             return Response({"error": "Supplier name is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # ✅ Inward Challans
-#         inward_queryset = InwardChallan2.objects.filter(SupplierName=supplier)
-#         inward_data = []
-#         for inward in inward_queryset:
-#             inward_data.append({
-#                 "id": inward.id,
-#                 "SupplierName": inward.SupplierName,
-#                 "ChallanNo": inward.ChallanNo,
-#                 # Here you join related tables (assuming you have FKs, else you adapt):
-#                 "InwardChallanTable": getattr(inward, "inwardchallantable_set", []).all().values(
-#                     "OutNo", "OutDate", "ItemDescription", "OutQty","ChallanQty",
-#                 ) if hasattr(inward, "inwardchallantable_set") else [],
-#                   })
-
-#         # ✅ Outward Challans
-#         outward_queryset = onwardchallan.objects.filter(vender=supplier)
-#         outward_data = []
-#         for outward in outward_queryset:
-#             outward_data.append({
-#                 "challan_no": outward.challan_no,
-#                 "vendor": outward.vender,
-#                 "items": list(outward.items.all().values("item_code", "type", "description","qtyNo"))
-#             })
-
-#         return Response({
-#             "supplier": supplier,
-#             "inward_challans": inward_data,
-#             "outward_challans": outward_data
-#         }, status=status.HTTP_200_OK)
-
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 # old h 
+# class SubcornStock(APIView):
+#     def get(self, request):
+#         supplier = request.query_params.get("q")  # optional ?q=TATA
+                
+#         inward_queryset = InwardChallan2.objects.all()
+#         if supplier:
+#             inward_queryset = inward_queryset.filter(SupplierName=supplier)
+
+#         combined_data = []
+#         for inward in inward_queryset:
+#          combined_data.append({
+#         "type": "inward",
+#         "id": inward.id,
+#         "SupplierName": inward.SupplierName,
+#         "ChallanNo": inward.ChallanNo,
+#         "InwardChallanTable": inward.InwardChallanTable.all().values(
+#             "ItemDescription", "ChallanQty"
+#         ),
+#     })
+#         #  Outward Challans
+#         outward_queryset = onwardchallan.objects.all()
+#         if supplier:
+#             outward_queryset = outward_queryset.filter(vender=supplier)
+
+#         for outward in outward_queryset:
+#             combined_data.append({
+#                 "type": "outward",
+#                 "challan_no": outward.challan_no,
+#                 "vendor": outward.vender,
+#                 "items": list(outward.items.all().values("item_code", "type", "description","qtyNo"))
+#             })
+
+#         return Response(combined_data, status=status.HTTP_200_OK)
+
+
+from collections import defaultdict
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+import re
+
+def normalize_description(desc):
+    match = re.search(r'(\d+\.?\d*\s*Dia\s*[A-Z0-9]+)', desc)
+    if match:
+        return match.group(1).strip()
+    return desc.strip()
+#same item description se add ho rha h
 class SubcornStock(APIView):
     def get(self, request):
-        supplier = request.query_params.get("q")  # optional ?q=TATA
-                
-        inward_queryset = InwardChallan2.objects.all()
-        if supplier:
-            inward_queryset = inward_queryset.filter(SupplierName=supplier)
+        supplier = request.query_params.get("q")
 
+        # ================= PASS 1 : TOTAL QTY =================
+        material_qty = defaultdict(float)
+
+        inward_qs = InwardChallan2.objects.all()
+        outward_qs = onwardchallan.objects.all()
+
+        if supplier:
+            inward_qs = inward_qs.filter(SupplierName=supplier)
+            outward_qs = outward_qs.filter(vender=supplier)
+
+        for inward in inward_qs:
+            for item in inward.InwardChallanTable.all():
+                material = normalize_description(item.ItemDescription)
+                material_qty[material] += float(item.ChallanQty)
+
+        for outward in outward_qs:
+            for item in outward.items.all():
+                material = normalize_description(item.description)
+                material_qty[material] += float(item.qtyNo)
+
+        # ================= PASS 2 : BUILD RESPONSE =================
         combined_data = []
-        for inward in inward_queryset:
-         combined_data.append({
-        "type": "inward",
-        "id": inward.id,
-        "SupplierName": inward.SupplierName,
-        "ChallanNo": inward.ChallanNo,
-        "InwardChallanTable": inward.InwardChallanTable.all().values(
-            "ItemDescription", "ChallanQty"
-        ),
-    })
-        #  Outward Challans
-        outward_queryset = onwardchallan.objects.all()
-        if supplier:
-            outward_queryset = outward_queryset.filter(vender=supplier)
+        shown_materials = set()
 
-        for outward in outward_queryset:
-            combined_data.append({
-                "type": "outward",
-                "challan_no": outward.challan_no,
-                "vendor": outward.vender,
-                "items": list(outward.items.all().values("item_code", "type", "description","qtyNo"))
-            })
+        # Inward (but only if LAST occurrence is inward)
+        for inward in inward_qs:
+            inward_items = []
+
+            for item in inward.InwardChallanTable.all():
+                material = normalize_description(item.ItemDescription)
+
+                # if this material appears in outward later → skip
+                if material in shown_materials:
+                    continue
+
+                inward_items.append({
+                    "ItemDescription": item.ItemDescription,
+                    "ChallanQty": material_qty[material]
+                })
+
+                shown_materials.add(material)
+
+            if inward_items:
+                combined_data.append({
+                    "type": "inward",
+                    "id": inward.id,
+                    "SupplierName": inward.SupplierName,
+                    "ChallanNo": inward.ChallanNo,
+                    "InwardChallanTable": inward_items
+                })
+
+        # Outward (ALWAYS LAST → overwrite inward)
+        for outward in outward_qs:
+            items = []
+
+            for item in outward.items.all():
+                material = normalize_description(item.description)
+
+                # remove inward entry if exists
+                if material in shown_materials:
+                    continue
+
+                items.append({
+                    "item_code": item.item_code,
+                    "type": item.type,
+                    "description": item.description,
+                    "qtyNo": material_qty[material]
+                })
+
+                shown_materials.add(material)
+
+            if items:
+                combined_data.append({
+                    "type": "outward",
+                    "challan_no": outward.challan_no,
+                    "vendor": outward.vender,
+                    "items": items
+                })
 
         return Response(combined_data, status=status.HTTP_200_OK)
-    
-# class SubcornStock(APIView):
-#     """
-#     This API is ONLY for the dropdown suggestions.
-#     It searches for supplier names based on the query 'q' 
-#     and returns a simple list of matching names.
-#     """
-#     def get(self, request):
-#         # 1. Get the search query from React (e.g., "SAHIL")
-#         query = request.query_params.get("q", "").strip()
 
-#         # 2. If the query is empty or too short, return an empty list
-#         if not query or len(query) < 2:
-#             return Response([], status=status.HTTP_200_OK)
-
-#         try:
-#             # 3. Search for suppliers using 'icontains' (case-insensitive contains)
-#             #    Use 'values()' to only get the 'SupplierName'
-#             #    Use 'distinct()' to get unique names (no repeats)
-#             vendors_qs = InwardChallan2.objects.filter(
-#                 SupplierName__icontains=query
-#             ).values('SupplierName').distinct()
-
-#             # 4. Format the data for React.
-#             #    React code expects: [{"supplier": "SAHIL CORPORATION"}]
-#             #    Our query gives:   [{"SupplierName": "SAHIL CORPORATION"}]
-#             #    This loop fixes the format:
-#             results = [{"supplier": item['SupplierName']} for item in vendors_qs]
-
-#             return Response(results, status=status.HTTP_200_OK)
-        
-#         except Exception as e:
-#             # Handle any potential errors
-#             print(f"Error in SubcornStock dropdown API: {e}")
-#             return Response([], status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 from collections import defaultdict
@@ -3413,16 +3441,6 @@ from .models import InwardChallanGSTDetails,InwardChallanTable
 
 
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from collections import defaultdict
-from datetime import datetime
-import re
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 #-----Matching Itemcode in inward or outward ----
 # class VenderStock(APIView):
 #     def get(self, request):

@@ -54,3 +54,14 @@ def create_invoiceno():
         if not Invoice.objects.filter(invoice_no = invoice_no).exists():
             return invoice_no
     raise ValueError("NO available challan numbers left for the current year range")
+
+from .models import DebitNote
+def create_debitNote():
+    current_year=datetime.now().year % 100
+    next_year=(datetime.now().year +1 )% 100
+    prefix =f"{current_year:02d}{next_year:02d}"
+    for counter in range(1 , 10000):
+        debit_no=f"{prefix}{counter:05d}"
+        if not DebitNote.objects.filter(debit_note_no=debit_no).exists():
+            return debit_no
+    raise ValueError("NO available debit_note_no numbers left for the current year range")

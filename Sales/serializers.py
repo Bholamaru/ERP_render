@@ -233,13 +233,150 @@ class ItemSerializer(serializers.ModelSerializer):
 
 
 
-class DebitNoteItemSerializer(serializers.ModelSerializer):
-    debit_note = serializers.PrimaryKeyRelatedField(read_only=True)
+# class DebitNoteItemSerializer(serializers.ModelSerializer):
+#     debit_note = serializers.PrimaryKeyRelatedField(read_only=True)
 
+#     class Meta:
+#         model = DebitNoteIteam
+#         fields = "__all__"
+
+# class DebitNoteSerializer(serializers.ModelSerializer):
+#     items = DebitNoteItemSerializer(many=True)
+
+#     class Meta:
+#         model = DebitNote
+#         fields = "__all__"
+
+#     def create(self, validated_data):
+#         items_data = validated_data.pop("items")
+#         debit_note = DebitNote.objects.create(**validated_data)
+
+#         for item in items_data:
+#             DebitNoteIteam.objects.create(
+#                 debit_note=debit_note,
+#                 **item
+#             )
+
+#         return debit_note
+    
+    
+
+# from rest_framework import serializers
+# from decimal import Decimal
+from django.db import transaction
+
+
+# class DebitNoteItemSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = DebitNoteIteam
+#         exclude = ("debit_note",)
+
+#     def create(self, validated_data):
+#         with transaction.atomic():
+#             item = DebitNoteIteam.objects.create(**validated_data)
+
+#             item_code = item.item_code
+#             qty = item.quantity
+
+#             if qty:
+#                 try:
+#                     debit_qty = Decimal(qty)
+#                 except:
+#                     debit_qty = Decimal("0")
+
+#                 if item_code and debit_qty > 0:
+#                     grn_item = NewGrnList.objects.filter(
+#                         ItemNoCode=item_code
+#                     ).order_by("id").first()
+
+#                     if grn_item:
+#                         grn_item.GrnQty = max(
+#                             Decimal(grn_item.GrnQty) - debit_qty,
+#                             Decimal("0")
+#                         )
+#                         grn_item.save()
+
+#             return item
+
+
+# class DebitNoteSerializer(serializers.ModelSerializer):
+#     items = DebitNoteItemSerializer(many=True)
+
+#     class Meta:
+#         model = DebitNote
+#         fields = "__all__"
+
+#     def create(self, validated_data):
+#         items_data = validated_data.pop("items")
+
+#         with transaction.atomic():
+#             debit_note = DebitNote.objects.create(**validated_data)
+
+#             for item in items_data:
+#                 DebitNoteItemSerializer().create({
+#                     **item,
+#                     "debit_note": debit_note
+#                 })
+
+#             return debit_note
+
+
+
+
+from decimal import Decimal
+from django.db import transaction
+from rest_framework import serializers
+class DebitNoteItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = DebitNoteIteam
         fields = "__all__"
+        read_only_fields = ("debit_note",)
 
+    def _get_decimal_qty(self, qty):
+        try:
+            return Decimal(str(qty).strip())
+        except:
+            return Decimal("0")
+
+    def _subtract_from_grn(self, item):
+        qty = self._get_decimal_qty(item.quantity)
+        if qty <= 0:
+            return
+
+        grn_item = NewGrnList.objects.filter(
+            ItemNoCode__iexact=item.item_code.strip()
+        ).order_by("id").first()
+
+        if not grn_item:
+            return
+
+        grn_item.GrnQty = max(
+            Decimal(grn_item.GrnQty or 0) - qty,
+            Decimal("0")
+        )
+        grn_item.save(update_fields=["GrnQty"])
+
+    def _restore_to_grn(self, item):
+        qty = self._get_decimal_qty(item.quantity)
+        if qty <= 0:
+            return
+
+        grn_item = NewGrnList.objects.filter(
+            ItemNoCode__iexact=item.item_code.strip()
+        ).order_by("id").first()
+
+        if grn_item:
+            grn_item.GrnQty = Decimal(grn_item.GrnQty or 0) + qty
+            grn_item.save(update_fields=["GrnQty"])
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            item = DebitNoteIteam.objects.create(**validated_data)
+
+            # 🔥 RUNTIME SUBTRACTION
+            self._subtract_from_grn(item)
+
+            return item
 class DebitNoteSerializer(serializers.ModelSerializer):
     items = DebitNoteItemSerializer(many=True)
 
@@ -249,12 +386,39 @@ class DebitNoteSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop("items")
-        debit_note = DebitNote.objects.create(**validated_data)
 
-        for item in items_data:
-            DebitNoteIteam.objects.create(
-                debit_note=debit_note,
-                **item
-            )
+        with transaction.atomic():
+            debit_note = DebitNote.objects.create(**validated_data)
+
+            for item_data in items_data:
+                serializer = DebitNoteItemSerializer(data=item_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save(debit_note=debit_note)  # 🔥 FK + runtime subtract
 
         return debit_note
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop("items", [])
+
+        with transaction.atomic():
+            # update debit note fields
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+
+            # restore old GRN qty
+            old_items = DebitNoteIteam.objects.filter(debit_note=instance)
+            item_serializer = DebitNoteItemSerializer()
+
+            for old_item in old_items:
+                item_serializer._restore_to_grn(old_item)
+
+            old_items.delete()
+
+            # create new items and subtract again
+            for item_data in items_data:
+                serializer = DebitNoteItemSerializer(data=item_data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save(debit_note=instance)
+
+        return instance

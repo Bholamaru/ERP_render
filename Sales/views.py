@@ -1020,3 +1020,19 @@ class PurchasePOBySupplierAPIView(APIView):
 class NewgstsalesreturnViewSet(viewsets.ModelViewSet):
     queryset = Newgstsalesreturn.objects.prefetch_related("items").all()
     serializer_class = NewgstsalesreturnSerializer
+
+
+from .utils import create_sales_return_no
+class GenerateSalesReturnNumber(APIView):
+    def get(self, request):
+        try:
+            sales_return_no = create_sales_return_no()
+            return Response(
+                {"sales_return_no": sales_return_no},
+                status=status.HTTP_200_OK
+            )
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

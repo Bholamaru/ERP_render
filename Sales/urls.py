@@ -58,4 +58,6 @@ urlpatterns=router.urls+[
     path('debit/no', GenerateDebitNoteNumber.as_view(), name='genrate-debit-note-no'),
     path("purchase-po/by-supplier/", PurchasePOBySupplierAPIView.as_view(), name='debit-note-purchase-grn-data'),
 
+   path('sales/return-no/', GenerateSalesReturnNumber.as_view(), name='Gst-sales-return-no-genrate'),
+
 ]

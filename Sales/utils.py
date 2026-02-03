@@ -65,3 +65,15 @@ def create_debitNote():
         if not DebitNote.objects.filter(debit_note_no=debit_no).exists():
             return debit_no
     raise ValueError("NO available debit_note_no numbers left for the current year range")
+
+
+from .models import Newgstsalesreturn
+def create_sales_return_no():
+    current_year=datetime.now().year % 100
+    next_year=(datetime.now().year +1)% 100
+    prefix = f'{current_year:02d}{next_year:02d}'
+    for counter in range(1, 10000):
+        sales_return_no=f"{prefix}{counter:05d}"
+        if not Newgstsalesreturn.objects.filter(sales_return_no=sales_return_no).exists():
+            return sales_return_no
+    raise ValueError("No available sales_return_no number left for the current year range")

@@ -1013,3 +1013,10 @@ class PurchasePOBySupplierAPIView(APIView):
             })
 
         return Response(result, status=status.HTTP_200_OK)
+
+
+
+
+class NewgstsalesreturnViewSet(viewsets.ModelViewSet):
+    queryset = Newgstsalesreturn.objects.prefetch_related("items").all()
+    serializer_class = NewgstsalesreturnSerializer

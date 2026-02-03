@@ -27,6 +27,7 @@ router.register(r'onward-challans', OnwardChallanViewSet, basename='onward-chall
 router.register(r'invoice', InvoiceViewSet, basename='invoice')
 router.register(r'newsalesorder' ,NewsalesOrederViewSet, basename='NewSalesOreder')
 router.register(r'debitnote',DebitNoteViewSet,basename='Debit-note')
+router.register(r'Gstsalesretun', NewgstsalesreturnViewSet, basename='New-Gst-Sales-Return')
 
 
 urlpatterns=router.urls+[

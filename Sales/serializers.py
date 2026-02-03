@@ -205,24 +205,6 @@ class NewSalesOrderSerializer(serializers.ModelSerializer):
             )
         return order
 
-
-# class NewSalesOrderSerializer(serializers.ModelSerializer):
-#     item = NewSalesItemSerializer(many=True, read_only=True)
-#     class Meta:
-#         model = NewSalesOrder
-#         fields = '__all__'
-    
-#     def create(self, validated_data):
-#         items_data = validated_data.pop('item', [])
-#         order = NewSalesOrder.objects.create(**validated_data)
-
-#         for item in items_data:
-#             NewSalesItemdetails.objects.create(
-#                 newsaleoreder=order,
-#                 **item
-#             )
-#         return order
-
 from All_Masters.models import Item       
 class ItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -261,66 +243,6 @@ class ItemSerializer(serializers.ModelSerializer):
     
     
 
-# from rest_framework import serializers
-# from decimal import Decimal
-from django.db import transaction
-
-
-# class DebitNoteItemSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = DebitNoteIteam
-#         exclude = ("debit_note",)
-
-#     def create(self, validated_data):
-#         with transaction.atomic():
-#             item = DebitNoteIteam.objects.create(**validated_data)
-
-#             item_code = item.item_code
-#             qty = item.quantity
-
-#             if qty:
-#                 try:
-#                     debit_qty = Decimal(qty)
-#                 except:
-#                     debit_qty = Decimal("0")
-
-#                 if item_code and debit_qty > 0:
-#                     grn_item = NewGrnList.objects.filter(
-#                         ItemNoCode=item_code
-#                     ).order_by("id").first()
-
-#                     if grn_item:
-#                         grn_item.GrnQty = max(
-#                             Decimal(grn_item.GrnQty) - debit_qty,
-#                             Decimal("0")
-#                         )
-#                         grn_item.save()
-
-#             return item
-
-
-# class DebitNoteSerializer(serializers.ModelSerializer):
-#     items = DebitNoteItemSerializer(many=True)
-
-#     class Meta:
-#         model = DebitNote
-#         fields = "__all__"
-
-#     def create(self, validated_data):
-#         items_data = validated_data.pop("items")
-
-#         with transaction.atomic():
-#             debit_note = DebitNote.objects.create(**validated_data)
-
-#             for item in items_data:
-#                 DebitNoteItemSerializer().create({
-#                     **item,
-#                     "debit_note": debit_note
-#                 })
-
-#             return debit_note
-
-
 
 
 from decimal import Decimal
@@ -332,51 +254,56 @@ class DebitNoteItemSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ("debit_note",)
 
-    def _get_decimal_qty(self, qty):
+    def _to_decimal(self, val):
         try:
-            return Decimal(str(qty).strip())
+            return Decimal(str(val).strip())
         except:
             return Decimal("0")
 
-    def _subtract_from_grn(self, item):
-        qty = self._get_decimal_qty(item.quantity)
-        if qty <= 0:
+    def _fifo_subtract_from_grn(self, item):
+        qty_to_deduct = self._to_decimal(item.quantity)
+        if qty_to_deduct <= 0:
             return
 
-        grn_item = NewGrnList.objects.filter(
-            ItemNoCode__iexact=item.item_code.strip()
-        ).order_by("id").first()
-
-        if not grn_item:
-            return
-
-        grn_item.GrnQty = max(
-            Decimal(grn_item.GrnQty or 0) - qty,
-            Decimal("0")
+        grn_qs = (
+            NewGrnList.objects
+            .select_for_update()
+            .filter(ItemNoCode__iexact=item.item_code.strip(), GrnQty__gt=0)
+            .order_by("id")   #  FIFO
         )
-        grn_item.save(update_fields=["GrnQty"])
 
-    def _restore_to_grn(self, item):
-        qty = self._get_decimal_qty(item.quantity)
-        if qty <= 0:
-            return
+        for grn in grn_qs:
+            if qty_to_deduct <= 0:
+                break
 
-        grn_item = NewGrnList.objects.filter(
-            ItemNoCode__iexact=item.item_code.strip()
-        ).order_by("id").first()
+            available = Decimal(grn.GrnQty or 0)
 
-        if grn_item:
-            grn_item.GrnQty = Decimal(grn_item.GrnQty or 0) + qty
-            grn_item.save(update_fields=["GrnQty"])
+            if available >= qty_to_deduct:
+                # enough stock in this GRN
+                grn.GrnQty = available - qty_to_deduct
+                qty_to_deduct = Decimal("0")
+            else:
+                # consume full GRN
+                grn.GrnQty = Decimal("0")
+                qty_to_deduct -= available
+
+            grn.save(update_fields=["GrnQty"])
+
+        # optional safety check
+        if qty_to_deduct > 0:
+            raise serializers.ValidationError(
+                f"Insufficient GRN stock for item {item.item_code}"
+            )
 
     def create(self, validated_data):
         with transaction.atomic():
             item = DebitNoteIteam.objects.create(**validated_data)
 
-            # 🔥 RUNTIME SUBTRACTION
-            self._subtract_from_grn(item)
+            #  FIFO deduction happens here
+            self._fifo_subtract_from_grn(item)
 
             return item
+       
 class DebitNoteSerializer(serializers.ModelSerializer):
     items = DebitNoteItemSerializer(many=True)
 
@@ -393,32 +320,47 @@ class DebitNoteSerializer(serializers.ModelSerializer):
             for item_data in items_data:
                 serializer = DebitNoteItemSerializer(data=item_data)
                 serializer.is_valid(raise_exception=True)
-                serializer.save(debit_note=debit_note)  # 🔥 FK + runtime subtract
+                serializer.save(debit_note=debit_note)
 
         return debit_note
+
+
+class NewgstsalesItemDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewgstsalesItemDetails
+        fields = "__all__"
+        read_only_fields = ("id", "new_gst_sales")
+
+class NewgstsalesreturnSerializer(serializers.ModelSerializer):
+    items = NewgstsalesItemDetailsSerializer(many=True)
+
+    class Meta:
+        model = Newgstsalesreturn
+        fields = "__all__"
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items")
+        sales_return = Newgstsalesreturn.objects.create(**validated_data)
+
+        for item in items_data:
+            NewgstsalesItemDetails.objects.create(
+                new_gst_sales=sales_return,
+                **item
+            )
+        return sales_return
 
     def update(self, instance, validated_data):
         items_data = validated_data.pop("items", [])
 
-        with transaction.atomic():
-            # update debit note fields
-            for attr, value in validated_data.items():
-                setattr(instance, attr, value)
-            instance.save()
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
 
-            # restore old GRN qty
-            old_items = DebitNoteIteam.objects.filter(debit_note=instance)
-            item_serializer = DebitNoteItemSerializer()
+        instance.items.all().delete()
 
-            for old_item in old_items:
-                item_serializer._restore_to_grn(old_item)
-
-            old_items.delete()
-
-            # create new items and subtract again
-            for item_data in items_data:
-                serializer = DebitNoteItemSerializer(data=item_data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save(debit_note=instance)
-
+        for item in items_data:
+            NewgstsalesItemDetails.objects.create(
+                new_gst_sales=instance,
+                **item
+            )
         return instance

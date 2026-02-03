@@ -334,3 +334,59 @@ class DebitNoteIteam(models.Model):
     tds_on_basic = models.BooleanField(default=True)
     tds_on_grand_total = models.BooleanField(default=False)
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+
+
+
+
+class Newgstsalesreturn(models.Model):
+    plant = models.CharField(max_length=100, blank=True, null=True)
+    gate_entry_no = models.CharField(max_length=50, blank=True, null=True)
+    series = models.CharField(max_length=50, blank=True, null=True)
+    type = models.CharField(max_length=100, blank=True, null=True)
+    sales_return_no = models.CharField(max_length=100, blank=True, null=True)
+    sales_return_date = models.DateField(blank=True, null=True)
+    cust_name = models.CharField(max_length=100, blank=True, null=True)
+    invoice_challan_no = models.CharField(max_length=100, blank=True, null=True)
+    invoice_challan_date = models.DateField(blank=True, null=True)
+    transport_name = models.CharField(max_length=100, blank=True, null=True)
+    Lr_no = models.CharField(max_length=100, blank=True, null=True)
+    vehical_no = models.CharField(max_length=20, blank=True, null=True)
+    remark = models.CharField(max_length=250, blank=True, null=True)
+    for_e_invoice = models.CharField(max_length=250, blank=True, null=True)
+    is_service = models.BooleanField(default=True)
+
+
+class NewgstsalesItemDetails(models.Model):
+    new_gst_sales = models.ForeignKey(Newgstsalesreturn,related_name="items",on_delete=models.CASCADE )
+
+    inv_no = models.CharField(max_length=100, blank=True, null=True)
+    inv_date = models.DateField(blank=True, null=True)
+    item_code = models.CharField(max_length=100, blank=True, null=True)
+    hsn_code = models.CharField(max_length=100, blank=True, null=True)
+
+    rate = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    discount = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    total_amt = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+
+    inv_qty = models.DecimalField(max_digits=15, decimal_places=3, blank=True, null=True)
+    return_qty = models.DecimalField(max_digits=15, decimal_places=3, blank=True, null=True)
+
+    lot = models.CharField(max_length=100, blank=True, null=True)
+    reason = models.CharField(max_length=100, blank=True, null=True)
+    grir_no = models.CharField(max_length=100, blank=True, null=True)
+    grir_date = models.DateField(blank=True, null=True)
+
+    basic = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    disc = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    subtotal = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+
+    cgst = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    sgst = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    igst = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    utgst = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+
+    toc = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    tsc = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    grand_total = models.DecimalField(max_digits=18, decimal_places=2, blank=True, null=True)

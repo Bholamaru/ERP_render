@@ -1,0 +1,339 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .copy-type {
+            text-align: center;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 5px;
+        }
+        th {
+            background: #f2f2f2;
+        }
+        .header-table td {
+            border: none;
+            padding: 3px;
+        }
+        .total {
+            text-align: right;
+            font-weight: bold;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+
+{% for copy in copies %}
+
+<h2>DEBIT NOTE</h2>
+<div class="copy-type">
+    <b>{{ copy }}</b>
+</div>
+
+<table class="header-table">
+    <tr>
+        <td><b>Debit Note No:</b> {{ debit.debit_note_no }}</td>
+        <td><b>Date:</b> {{ debit.debit_note_date }}</td>
+    </tr>
+    <tr>
+        <td><b>Party Name:</b> {{ debit.party_name }}</td>
+        <td><b>Invoice No:</b> {{ debit.invoice_no }}</td>
+    </tr>
+</table>
+
+<table>
+    <thead>
+        <tr>
+            <th>Item Code</th>
+            <th>Description</th>
+            <th>Qty</th>
+            <th>Rate</th>
+            <th>Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.item_code }}</td>
+            <td>{{ item.item_description }}</td>
+            <td>{{ item.grn_qty }}</td>
+            <td>{{ item.Rate }}</td>
+            <td>{{ item.amount }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p class="total">
+    Grand Total: {{ grand_total }}
+</p>
+
+{% if not forloop.last %}
+<div class="page-break"></div>
+{% endif %}
+
+{% endfor %}
+
+</body>
+</html>
+
+ -->
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12px;
+        }
+
+        .container {
+            border: 2px solid #000;
+            padding: 10px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .small {
+            font-size: 11px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #000;
+            padding: 5px;
+            vertical-align: top;
+        }
+
+        .no-border {
+            border: none !important;
+        }
+
+        .header-title {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .sub-title {
+            font-size: 12px;
+        }
+
+        .section {
+            margin-top: 8px;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .amount-box td {
+            padding: 4px;
+        }
+
+        .page-break {
+    page-break-before: always;
+}
+
+
+/* For newer browsers / wkhtmltopdf */
+@media print {
+    .page-break {
+        break-before: page;
+    }
+}
+
+    </style>
+</head>
+
+<body>
+    {% for copy in copies %}
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="text-center">
+        <div class="header-title">SHARP ENGINEERS</div>
+        <div class="sub-title">A-31 MIDC WALUJ 431136</div>
+        <br>
+        <div class="bold">DEBIT NOTE</div>
+        <div class="small">
+            [ Issued Under Section 31 of GST Act, 2017 read with rule 48 of GST Rule, 2017 ]
+        </div>
+    </div>
+
+    <!-- PARTY DETAILS -->
+    <table class="section">
+        <tr>
+            <td width="50%">
+                <div class="bold">Details of Consignee</div>
+                {{ debit.party_name }}<br>
+                {{ debit.party_address }}<br><br>
+
+                <b>GSTIN No :</b> {{ debit.party_gstin }}<br>
+                <b>State Code :</b> {{ debit.party_state_code }}
+            </td>
+
+            <td width="50%">
+                <b>Debit Note No :</b> {{ debit.debit_note_no }}<br>
+                <b>Debit Note Date :</b> {{ debit.debit_note_date }}<br><br>
+
+                <b>GSTIN :</b> {{ debit.company_gstin }}<br>
+                <b>PAN No :</b> {{ debit.company_pan }}<br>
+                <b>State :</b> Maharashtra<br>
+                <b>State Code :</b> 27
+            </td>
+        </tr>
+    </table>
+
+    <!-- ITEM TABLE -->
+    <table class="section">
+        <thead>
+         
+        <tr>
+            <th>Sr No</th>
+            <th>Item Description</th>
+            <th>HSN Code</th>
+            <th>Remark</th>
+            <th>Rate</th>
+            <th>Quantity</th>
+            <th>Amount</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+        <tr>
+            
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>{{ item.item_description }}</td>
+            <td class="text-center">{{ item.hsn_code }}</td>
+            <td>{{ item.remark }}</td>
+            <td class="right">{{ item.Rate }}</td>
+            <td class="right">{{ item.quantity }}</td>
+            <td class="right">{{ item.amount }}</td>
+            
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- AMOUNT + TAX -->
+    <table class="section">
+        <tr>
+            <td width="65%">
+                <b>Amount in words :</b><br><br>
+
+                CGST : {{ cgst_words }}<br>
+                SGST : {{ sgst_words }}<br>
+                IGST : {{ igst_words }}<br><br>
+
+                <b>{{ total_amount_words }}</b><br><br>
+
+                <!-- TCS : Rupees And Zero Paise Only<br> -->
+                <b>Net Total :</b> {{ total_amount_words }}
+            </td>
+
+            <td width="35%">
+                <table class="amount-box">
+                     {% for item in items %}
+                    <tr>
+                        <td>Sub Total</td>
+                        <td class="right">{{ item.subtotal }}</td>
+                    </tr>
+                    <tr>
+                        <td>CGST 9%</td>
+                        <td class="right">{{ item.cgst }}</td>
+                    </tr>
+                    <tr>
+                        <td>SGST 9%</td>
+                        <td class="right">{{ item.sgst }}</td>
+                    </tr>
+                    <tr>
+                        <td>IGST 0%</td>
+                        <td class="right">0.00</td>
+                    </tr>
+                    <tr>
+                        <td class="bold">Grand Total</td>
+                        <td class="right bold">{{ item.grand_total }}</td>
+                    </tr>
+                    <tr>
+                        <td>TCS 0%</td>
+                        <td class="right">0.00</td>
+                    </tr>
+                    <tr>
+                        <td class="bold">Total Payable</td>
+                        <td class="right bold">{{ grand_total }}</td>
+                    </tr>
+                {% endfor %}
+
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- TRANSPORT -->
+    <table class="section">
+        <tr>
+            <td>Transport Mode : By Road</td>
+            <td>Vehicle No : {{ vehical_no }}</td>
+        </tr>
+        <tr>
+            <td>Transporter  : {{traspoter}}</td>
+            <td>LR No : {{lr_gc_note_no}}</td>
+        </tr>
+    </table>
+
+    <!-- SIGNATURE -->
+    <table class="section">
+        <tr>
+            <td width="50%">
+                RECEIVER'S SIGN & STAMP
+            </td>
+            <td width="50%" class="right">
+                For <b>SHARP ENGINEERS</b><br><br><br>
+                AUTHORISED SIGNATORY
+            </td>
+        </tr>
+    </table>
+
+</div>
+
+{% if not forloop.last %}
+<div class="page-break"></div>
+{% endif %}
+
+{% endfor %}
+</body>
+</html>

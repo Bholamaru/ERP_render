@@ -1036,3 +1036,119 @@ class GenerateSalesReturnNumber(APIView):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+from django.template.loader import render_to_string
+# class DebitNotePDFAPIView(APIView):
+
+#     def get(self, request, pk):
+#         debit = DebitNote.objects.get(id=pk)
+#         items = DebitNoteIteam.objects.filter(debit_note=debit)
+
+#         grand_total = sum(
+#             item.grand_total or 0 for item in items
+#         )
+#         copies = [
+#             "ORIGINAL FOR RECIPIENT",
+#             "DUPLICATE FOR TRANSPORTER",
+#             "TRIPLICATE FOR SUPPLIER"
+#         ]
+
+#         html_string = render_to_string(
+#             'Sales/debit_note_pdf.html',
+#             {
+#                 'debit': debit,
+#                 'items': items,
+#                 'grand_total': grand_total,
+#                 'copies': copies
+#             }
+#         )
+
+#         html = HTML(string=html_string)
+#         pdf = html.write_pdf()
+
+#         response = HttpResponse(pdf, content_type='application/pdf')
+#         response['Content-Disposition'] = (
+#             f'inline; filename="DebitNote_{debit.debit_note_no}.pdf"'
+#         )
+
+#         return response
+
+
+from num2words import num2words
+
+def amount_to_words(amount):
+    amount = amount or 0
+    rupees = int(amount)
+    paise = round((amount - rupees) * 100)
+
+    words = f"Rupees {num2words(rupees, lang='en_IN').title()}"
+    if paise > 0:
+        words += f" And {num2words(paise).title()} Paise"
+    words += " Only"
+    return words
+
+
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from rest_framework.views import APIView
+from weasyprint import HTML
+
+class DebitNotePDFAPIView(APIView):
+
+    def get(self, request, pk):
+        debit = DebitNote.objects.get(id=pk)
+        items = DebitNoteIteam.objects.filter(debit_note=debit)
+
+        # 🔹 Totals
+        sub_total = sum(item.subtotal or 0 for item in items)
+        cgst_total = sum(item.cgst or 0 for item in items)
+        sgst_total = sum(item.sgst or 0 for item in items)
+        igst_total = sum(item.igst or 0 for item in items)
+        grand_total = sum(item.grand_total or 0 for item in items)
+
+        # 🔹 Amount in words
+        cgst_words = amount_to_words(cgst_total)
+        sgst_words = amount_to_words(sgst_total)
+        igst_words = amount_to_words(igst_total)
+        total_amount_words = amount_to_words(grand_total)
+
+        # 🔹 FIXED item table height
+        MAX_ROWS = 10
+        item_count = items.count()
+        empty_rows = range(max(0, MAX_ROWS - item_count))
+
+        # 🔹 Copies
+        copies = [
+            "ORIGINAL FOR RECIPIENT",
+            "DUPLICATE FOR TRANSPORTER",
+            "TRIPLICATE FOR SUPPLIER"
+        ]
+
+        html_string = render_to_string(
+            'Sales/debit_note_pdf.html',
+            {
+                'debit': debit,
+                'items': items,
+                'sub_total': sub_total,
+                'cgst_total': cgst_total,
+                'sgst_total': sgst_total,
+                'igst_total': igst_total,
+                'grand_total': grand_total,
+
+                'cgst_words': cgst_words,
+                'sgst_words': sgst_words,
+                'igst_words': igst_words,
+                'total_amount_words': total_amount_words,
+
+                'empty_rows': empty_rows,
+                'copies': copies,
+            }
+        )
+
+        pdf = HTML(string=html_string).write_pdf()
+
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = (
+            f'inline; filename="DebitNote_{debit.debit_note_no}.pdf"'
+        )
+        return response

@@ -1152,3 +1152,28 @@ class DebitNotePDFAPIView(APIView):
             f'inline; filename="DebitNote_{debit.debit_note_no}.pdf"'
         )
         return response
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.db.models import Q
+from .models import NewSalesOrder
+from .serializers import NewSalesOrderSerializer
+
+
+class NewSalesOrderListAPIView(APIView):
+
+    def get(self, request):
+        customer = request.GET.get("customer")
+
+        queryset = NewSalesOrder.objects.all().order_by("-id")
+
+        if customer:
+            queryset = queryset.filter(
+                Q(customer__icontains=customer)
+            )
+
+        serializer = NewSalesOrderSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

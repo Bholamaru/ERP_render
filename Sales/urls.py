@@ -60,6 +60,8 @@ urlpatterns=router.urls+[
 
     path('sales/return-no/', GenerateSalesReturnNumber.as_view(), name='Gst-sales-return-no-genrate'),
 
-    path('debit-note/<int:pk>/', DebitNotePDFAPIView.as_view()),
+    path('debit-note/<int:pk>/', DebitNotePDFAPIView.as_view(), name='purchase-debit-note-pdf-genrater'),
+
+    path("customer/po/", NewSalesOrderListAPIView.as_view(), name="customer-po-for-gstinvoice"),
 
 ]

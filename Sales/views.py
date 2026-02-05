@@ -790,6 +790,14 @@ class DebitNoteViewSet(viewsets.ModelViewSet):
     queryset = DebitNote.objects.prefetch_related("items").all()
     serializer_class = DebitNoteSerializer
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return Response(
+            {"message": "Debit Note deleted successfully"},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
 from .utils import create_debitNote
 class GenerateDebitNoteNumber(APIView):
     def get(self, request):

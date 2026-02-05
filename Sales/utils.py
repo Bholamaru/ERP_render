@@ -77,3 +77,14 @@ def create_sales_return_no():
         if not Newgstsalesreturn.objects.filter(sales_return_no=sales_return_no).exists():
             return sales_return_no
     raise ValueError("No available sales_return_no number left for the current year range")
+
+from .models import NewSalesOrder
+def create_so_no():
+    current_year=datetime.now().year % 100
+    next_year=(datetime.now().year +1)% 100
+    prefix = f'{current_year:02d}{next_year:02d}'
+    for counter in range(1, 10000):
+        so_no=f"{prefix}{counter:05d}"
+        if not NewSalesOrder.objects.filter(so_no=so_no).exists():
+            return so_no
+    raise ValueError("No available so_no number left for the current year range")

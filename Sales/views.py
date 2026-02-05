@@ -1194,3 +1194,18 @@ class SalesReturnListAPIView(APIView):
         queryset = GeneralDetails.objects.filter(Type="Sales Return")
         serializer = GeneralDetailsSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+from .utils import create_so_no
+class GenerateSalesOrderNumber(APIView):
+    def get(self, request):
+        try:
+            so_no = create_so_no()
+            return Response(
+                {"so_no": so_no},
+                status=status.HTTP_200_OK
+            )
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

@@ -66,4 +66,7 @@ urlpatterns=router.urls+[
 
     path("salesreturn/gate-entry", SalesReturnListAPIView.as_view(), name="sales-return-list"),
 
+    path("generate-so-no/", GenerateSalesOrderNumber.as_view(), name="generate-so-no-for-newsalesoreder"),
+
+
 ]

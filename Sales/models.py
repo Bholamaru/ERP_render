@@ -210,6 +210,7 @@ class InvoiceItemdetails(models.Model):
     inv_qty=models.IntegerField(blank=True,null=True)
     pkg_qty=models.IntegerField(blank=True,null=True)
     type_of_packing=models.CharField(max_length=250,blank=True,null=True)
+    hsn_code=models.CharField(max_length=100,blank=True,null=True)
 
 
 class GstdetailsInvoice(models.Model):
@@ -246,6 +247,7 @@ class NewSalesOrder(models.Model):
     file = models.ImageField(upload_to='newsales/', null=True,blank=True )
     # file=models.fiel(upload_to='newsales')
     so_date=models.DateField(auto_now_add=True)
+    so_no=models.CharField(max_length=100,blank=True,null=True)
     po_rec_date=models.DateField(auto_now_add=True)
     incoterms=models.CharField(max_length=100,blank=True,null=True)
     ship_to=models.CharField(max_length=100,blank=True,null=True)

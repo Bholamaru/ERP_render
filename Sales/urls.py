@@ -64,4 +64,6 @@ urlpatterns=router.urls+[
 
     path("customer/po/", NewSalesOrderListAPIView.as_view(), name="customer-po-for-gstinvoice"),
 
+    path("salesreturn/gate-entry", SalesReturnListAPIView.as_view(), name="sales-return-list"),
+
 ]

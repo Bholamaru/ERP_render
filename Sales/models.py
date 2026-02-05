@@ -283,6 +283,14 @@ class NewSalesItemdetails(models.Model):
     type=models.CharField(max_length=100,blank=True,null=True)
     item_category=models.CharField(max_length=100,blank=True,null=True)
     remark=models.CharField(max_length=250,blank=True,null=True)
+    hsn_code=models.CharField(max_length=250,blank=True,null=True)
+    assessable_value=models.DecimalField(max_digits=50,decimal_places=4,default=0)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cgst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    sgst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    igst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    utgst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    gr_total = models.DecimalField(max_digits=50, decimal_places=2, default=0)
 
 
 

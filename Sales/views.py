@@ -1185,3 +1185,12 @@ class NewSalesOrderListAPIView(APIView):
 
         serializer = NewSalesOrderSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+from Store.models import GeneralDetails
+from Store.serializers import GeneralDetailsSerializer
+class SalesReturnListAPIView(APIView):
+    def get(self, request):
+        queryset = GeneralDetails.objects.filter(Type="Sales Return")
+        serializer = GeneralDetailsSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

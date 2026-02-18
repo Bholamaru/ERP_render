@@ -1209,3 +1209,88 @@ class GenerateSalesOrderNumber(APIView):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+
+
+
+from collections import defaultdict
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+class FinishOpHeatWiseProd(APIView):
+
+    def get(self, request):
+        part_no = request.query_params.get("part_no")
+
+        if not part_no:
+            return Response(
+                {"error": "part_code is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        
+        bom_qs = BOMItem.objects.filter(
+            item__Part_Code__icontains=part_no
+        )
+
+        if not bom_qs.exists():
+            return Response(
+                {"error": "No BOM found for this part"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        
+        finish_bom = bom_qs.filter(Operation__icontains="FINISH")
+
+        if finish_bom.exists():
+            final_bom = finish_bom.first()
+        else:
+            
+            final_bom = max(
+                bom_qs,
+                key=lambda x: int(x.OPNo) if str(x.OPNo).isdigit() else 0
+            )
+
+        final_opno = final_bom.OPNo.strip()   
+
+       
+        prod_qs = ProductionEntry.objects.filter(
+            item__icontains=part_no,
+            operation__startswith=final_opno
+        )
+
+        if not prod_qs.exists():
+            return Response(
+                {
+                    "part_code": part_no,
+                    "OPNo": final_opno,
+                    "data": []
+                },
+                status=status.HTTP_200_OK
+            )
+
+       
+        heat_wise = defaultdict(float)
+
+        for prod in prod_qs:
+            heat_no = getattr(prod, "heat_no", "UNKNOWN")
+            heat_wise[heat_no] += float(prod.prod_qty or 0)
+
+       
+        response_data = [
+            {
+                "heat_no": heat_no,
+                "prod_qty": round(qty, 2)
+            }
+            for heat_no, qty in heat_wise.items()
+        ]
+
+        return Response({
+            "part_no": part_no,
+            "OPNo": final_opno,
+            "Operation": final_bom.Operation,
+            "data": response_data
+        }, status=status.HTTP_200_OK)
+
+

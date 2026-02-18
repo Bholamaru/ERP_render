@@ -257,7 +257,7 @@ class NewSalesOrder(models.Model):
     buyer_name=models.CharField(max_length=100,blank=True,null=True)
     packing=models.CharField(max_length=100,blank=True,null=True)
     shift=models.CharField(max_length=100,blank=True,null=True)
-    shift=models.DateField(blank=True,null=True)
+    # shift=models.DateField(blank=True,null=True)
     plan_date=models.DateField(auto_now_add=True)
     l_c_no=models.CharField(max_length=100,blank=True,null=True)
     sales_person=models.CharField(max_length=100,blank=True,null=True)

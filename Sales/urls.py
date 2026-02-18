@@ -68,5 +68,6 @@ urlpatterns=router.urls+[
 
     path("generate-so-no/", GenerateSalesOrderNumber.as_view(), name="generate-so-no-for-newsalesoreder"),
 
+    path("finish-op-heat-wise/",FinishOpHeatWiseProd.as_view(),name="finish-op-heat-wise"),
 
 ]

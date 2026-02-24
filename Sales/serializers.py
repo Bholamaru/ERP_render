@@ -148,7 +148,16 @@ class OnwardChallanSerializer(serializers.ModelSerializer):
 
 
 from rest_framework import serializers
-from .models import Invoice, InvoiceItemdetails
+from .models import Invoice, InvoiceItemdetails,GstdetailsInvoice
+
+class GstdetailsInvoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GstdetailsInvoice
+        fields = '__all__'
+        extra_kwargs = {
+            'invoice': {'required': False}
+        }
+
 
 class InvoiceItemdetailsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -160,7 +169,9 @@ class InvoiceItemdetailsSerializer(serializers.ModelSerializer):
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
-    items = InvoiceItemdetailsSerializer(many=True, required=False)  # nested items
+    items = InvoiceItemdetailsSerializer(many=True, required=False)  
+    GSTdetails = GstdetailsInvoiceSerializer(many=True, required=False)
+
 
     class Meta:
         model = Invoice
@@ -168,6 +179,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop('items', [])
+        gst_data = validated_data.pop('GSTdetails', [])
 
         # Create main Invoice
         invoice = Invoice.objects.create(**validated_data)
@@ -175,6 +187,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
         # Create related items
         for item in items_data:
             InvoiceItemdetails.objects.create(invoice=invoice, **item)
+
+        for gst in gst_data:
+            GstdetailsInvoice.objects.create(invoice=invoice, **gst)
 
         return invoice
 

@@ -822,7 +822,7 @@ class Item(models.Model):
     ]
 
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    Name = models.CharField(max_length=30, blank=True, null=True)
+    Name = models.CharField(max_length=300, blank=True, null=True)
     Address_Line_1 = models.CharField(max_length=30, blank=True, null=True)
     Region = models.CharField(max_length=30, blank=True, null=True)
     PAN_NO = models.CharField(max_length=30, blank=True, null=True)

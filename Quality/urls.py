@@ -14,8 +14,11 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('purchase-po-search/', PurchasePOforInwardtestlist.as_view(),name='Inward-test-certificate-list'),
     path('inward-qc-list/',InwardChallanListCreate.as_view(),name='Inward 57F4 QC List'),
-    # path('inprocess/inspection',ProductionEntryViewSet.as_view() , name='Inprocess-Inspections')
+    # path('inprocess/inspection',ProductionEntryViewSet.as_view() , name='Inprocess-Inspections'),
     path('subcon-jobwork-qc/', SubconJobworkQCInfoListCreateView.as_view(),name='subcon-jobwork-Qc'),
 
     path('subcon-jobwork-qc/<int:pk>/', SubconJobworkQCInfoDetailView.as_view(), name='subcon-jobwork-QC-delete'),
+    
+     path('sales-return-qc/',SalesReturnQcInfoAPI.as_view(), name='sales-return-qc-post-api'),
+    
 ]

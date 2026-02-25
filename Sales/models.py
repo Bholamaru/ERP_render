@@ -226,6 +226,10 @@ class GstdetailsInvoice(models.Model):
     sgst=models.IntegerField(blank=True,null=True)
     igst=models.IntegerField(blank=True,null=True)
     utgst=models.IntegerField(blank=True,null=True)
+    cgst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    sgst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    igst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    utgst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)    
     pack_fwrd=models.IntegerField(blank=True,null=True)
     transport_crg=models.IntegerField(blank=True,null=True)
     freight_crg=models.IntegerField(blank=True,null=True)
@@ -233,7 +237,7 @@ class GstdetailsInvoice(models.Model):
     grand_total=models.IntegerField(blank=True,null=True)
 
 
-
+ 
 
 from django.utils import timezone
 class NewSalesOrder(models.Model):
@@ -293,6 +297,10 @@ class NewSalesItemdetails(models.Model):
     sgst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     igst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     utgst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cgst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    sgst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    igst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    utgst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     gr_total = models.DecimalField(max_digits=50, decimal_places=2, default=0)
 
 
@@ -397,6 +405,11 @@ class NewgstsalesItemDetails(models.Model):
     sgst = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     igst = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     utgst = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+
+    cgst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    sgst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    igst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    utgst_amt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     toc = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     tsc = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)

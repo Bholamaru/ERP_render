@@ -191,3 +191,46 @@ class SubconJobworkQCInfoSerializer(serializers.ModelSerializer):
         return instance
     
 
+
+
+from rest_framework import serializers
+
+
+class SalesReturnDimensionalSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SalesReturnDimensional
+        fields = '__all__'
+
+
+class SalesReturnVisualInspectionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SalesReturnvisulainspection
+        fields = '__all__'
+
+
+class SalesReturnQcInfoSerializer(serializers.ModelSerializer):
+
+    dimension_tests = SalesReturnDimensionalSerializer(many=True)
+    visual_tests = SalesReturnVisualInspectionSerializer(many=True)
+
+    class Meta:
+        model = SalesReturnQcInfo
+        fields = '__all__'
+
+
+    def create(self, validated_data):
+
+        dimension_data = validated_data.pop('dimension_tests')
+        visual_data = validated_data.pop('visual_tests')
+
+        qc = SalesReturnQcInfo.objects.create(**validated_data)
+
+        for dim in dimension_data:
+            SalesReturnDimensional.objects.create(qc=qc, **dim)
+
+        for vis in visual_data:
+            SalesReturnvisulainspection.objects.create(qc=qc, **vis)
+
+        return qc

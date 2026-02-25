@@ -211,3 +211,34 @@ class SubconJobworkQCInfoDetailView(APIView):
         return Response({
             "message": "QC Deleted Successfully"
         }, status=status.HTTP_204_NO_CONTENT)
+    
+
+
+
+
+
+class SalesReturnQcInfoAPI(APIView):
+
+    def get(self, request):
+
+        data = SalesReturnQcInfo.objects.all().order_by('-id')
+
+        serializer = SalesReturnQcInfoSerializer(data, many=True)
+
+        return Response(serializer.data)
+
+
+    def post(self, request):
+
+        serializer = SalesReturnQcInfoSerializer(data=request.data)
+
+        if serializer.is_valid():
+
+            serializer.save()
+
+            return Response(
+                {"message": "Sales Return QC Created Successfully"},
+                status=status.HTTP_201_CREATED
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

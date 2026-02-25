@@ -157,5 +157,58 @@ class SubconJobworkrejectQty(models.Model):
 
 
 
+class SalesReturnQcInfo(models.Model):
+    rejection_series=models.CharField(max_length=200,blank=True,null=True)
+    qc_no=models.CharField(max_length=200,blank=True,null=True)
+    qc_date=models.DateField(blank=True,null=True)
+    cust_vender_name=models.CharField(max_length=200,blank=True,null=True)
+    select_item=models.CharField(max_length=200,blank=True,null=True)
+    part_code=models.CharField(max_length=200,blank=True,null=True)
+    heat_no=models.CharField(max_length=200,blank=True,null=True)
+    New_heat_no=models.CharField(max_length=200,blank=True,null=True)
+    return_qty=models.CharField(max_length=200,blank=True,null=True)
+    ok_qty=models.CharField(max_length=200,blank=True,null=True)
+    rework_qty=models.CharField(max_length=200,blank=True,null=True)
+    reject_qty=models.CharField(max_length=200,blank=True,null=True)
+    rework_reason=models.CharField(max_length=200,blank=True,null=True)
+    reject_reason=models.CharField(max_length=200,blank=True,null=True)
+    action_plan=models.CharField(max_length=200,blank=True,null=True)
+    action=models.CharField(max_length=200,blank=True,null=True)
+    action_date=models.DateField(blank=True,null=True)
+    remark=models.TextField(max_length=250,blank=True,null=True)
+    inspected_by=models.CharField(max_length=200,blank=True,null=True)
+    approved_by=models.CharField(max_length=200,blank=True,null=True)
 
 
+
+
+class SalesReturnDimensional(models.Model): 
+    qc = models.ForeignKey(SalesReturnQcInfo,related_name="dimension_tests",on_delete=models.CASCADE   )
+    test_no=models.CharField(max_length=200,blank=True,null=True)
+    test_description=models.CharField(max_length=200,blank=True,null=True)
+    specification=models.CharField(max_length=200,blank=True,null=True)
+    dimensions=models.CharField(max_length=200,blank=True,null=True)
+    tol_sub=models.CharField(max_length=200,blank=True,null=True)
+    tol_add=models.CharField(max_length=200,blank=True,null=True)
+    methods_of_check=models.CharField(max_length=200,blank=True,null=True)
+    one=models.CharField(max_length=200,blank=True,null=True)
+    two=models.CharField(max_length=200,blank=True,null=True)
+    three=models.CharField(max_length=200,blank=True,null=True)
+    four=models.CharField(max_length=200,blank=True,null=True)
+    five=models.CharField(max_length=200,blank=True,null=True)
+    remark=models.TextField(max_length=250,blank=True,null=True)
+  
+
+class SalesReturnvisulainspection(models.Model):
+    qc = models.ForeignKey(SalesReturnQcInfo,related_name="visual_tests",on_delete=models.CASCADE )
+    test_no=models.CharField(max_length=200,blank=True,null=True)
+    test_description=models.CharField(max_length=200,blank=True,null=True)
+    check_points=models.CharField(max_length=200,blank=True,null=True)
+    actual_observation=models.CharField(max_length=200,blank=True,null=True)
+    one=models.CharField(max_length=200,blank=True,null=True)
+    two=models.CharField(max_length=200,blank=True,null=True)
+    three=models.CharField(max_length=200,blank=True,null=True)
+    four=models.CharField(max_length=200,blank=True,null=True)
+    five=models.CharField(max_length=200,blank=True,null=True)
+    merge=models.BooleanField(default=True)
+    remark=models.TextField(max_length=250,blank=True,null=True)

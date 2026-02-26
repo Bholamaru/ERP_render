@@ -1025,10 +1025,24 @@ class PurchasePOBySupplierAPIView(APIView):
 
 
 
+# class NewgstsalesreturnViewSet(viewsets.ModelViewSet):
+#     queryset = Newgstsalesreturn.objects.prefetch_related("items").all()
+#     serializer_class = NewgstsalesreturnSerializer
+    
+
 class NewgstsalesreturnViewSet(viewsets.ModelViewSet):
     queryset = Newgstsalesreturn.objects.prefetch_related("items").all()
     serializer_class = NewgstsalesreturnSerializer
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
+        if not serializer.is_valid():
+            print("ERROR:", serializer.errors)   #  ye important hai
+            return Response(serializer.errors, status=400)
+
+        self.perform_create(serializer)
+        return Response(serializer.data, status=201)
 
 from .utils import create_sales_return_no
 class GenerateSalesReturnNumber(APIView):

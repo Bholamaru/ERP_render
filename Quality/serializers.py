@@ -201,6 +201,7 @@ class SalesReturnDimensionalSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalesReturnDimensional
         fields = '__all__'
+        read_only_fields = ("id", "qc")
 
 
 class SalesReturnVisualInspectionSerializer(serializers.ModelSerializer):
@@ -208,6 +209,7 @@ class SalesReturnVisualInspectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalesReturnvisulainspection
         fields = '__all__'
+        read_only_fields = ("id", "qc")
 
 
 class SalesReturnQcInfoSerializer(serializers.ModelSerializer):

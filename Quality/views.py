@@ -242,3 +242,41 @@ class SalesReturnQcInfoAPI(APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+from .utils import generate_qc_number
+class GenerateUniqueQcNumber(APIView):
+    
+    def get(self, request):
+        try:
+            qc_no = generate_qc_number()
+            
+            return Response(
+                {"qc_no": qc_no},
+                status=status.HTTP_200_OK
+            )
+        
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+from .utils import subcon_genrate_qc_no
+class GenrateSubconQcNo(APIView):
+    def get(self , request):
+        try:
+            qc= subcon_genrate_qc_no()
+            return Response({"qc":qc},status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response({"error": str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+from .utils import Inwardtedt_generate_qc_no
+class GenrateInwardTestqcno(APIView):
+    def get(self , request):
+        try:
+            qc_no= Inwardtedt_generate_qc_no()
+            return Response({"qc_no":qc_no},status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response({"error": str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)

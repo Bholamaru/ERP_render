@@ -1308,3 +1308,175 @@ class FinishOpHeatWiseProd(APIView):
         }, status=status.HTTP_200_OK)
 
 
+
+
+from django.shortcuts import get_object_or_404
+from django.template.loader import get_template
+from django.http import HttpResponse
+from weasyprint import HTML
+
+from .models import Newgstsalesreturn 
+
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from django.template.loader import get_template
+from weasyprint import HTML
+
+# ── num2words helper ──────────────────────────────────────────────────────────
+def amount_to_words(amount):
+    """Convert a numeric amount to Indian-style words (Rupees … Paise Only)."""
+    try:
+        amount = float(amount)
+    except (TypeError, ValueError):
+        return "Zero"
+
+    rupees = int(amount)
+    paise  = round((amount - rupees) * 100)
+
+    ones = [
+        '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight',
+        'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen',
+        'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen',
+    ]
+    tens = [
+        '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty',
+        'Sixty', 'Seventy', 'Eighty', 'Ninety',
+    ]
+
+    def _two(n):
+        if n < 20:
+            return ones[n]
+        return (tens[n // 10] + (' ' + ones[n % 10] if n % 10 else '')).strip()
+
+    def _to_words(n):
+        if n == 0:
+            return ''
+        parts = []
+        if n >= 10_000_000:
+            parts.append(_to_words(n // 10_000_000) + ' Crore')
+            n %= 10_000_000
+        if n >= 100_000:
+            parts.append(_to_words(n // 100_000) + ' Lakh')
+            n %= 100_000
+        if n >= 1_000:
+            parts.append(_to_words(n // 1_000) + ' Thousand')
+            n %= 1_000
+        if n >= 100:
+            parts.append(ones[n // 100] + ' Hundred')
+            n %= 100
+        if n > 0:
+            parts.append(_two(n))
+        return ' '.join(parts)
+
+    rupee_words = _to_words(rupees) or 'Zero'
+    result = f"Rs. {rupee_words}"
+    if paise:
+        result += f" and {_two(paise)} Paise"
+    result += " Only"
+    return result
+
+
+# ── view ──────────────────────────────────────────────────────────────────────
+def generate_salesreturn_pdf(request, pk):
+    sales_return = get_object_or_404(Newgstsalesreturn, pk=pk)
+    items = sales_return.items.all()
+
+    subtotal     = 0.0
+    total_cgst   = 0.0
+    total_sgst   = 0.0
+    total_igst   = 0.0
+    grand_total  = 0.0
+
+    for item in items:
+        subtotal    += float(item.subtotal    or 0)
+        total_cgst  += float(item.cgst_amt   or 0)
+        total_sgst  += float(item.sgst_amt   or 0)
+        total_igst  += float(item.igst_amt   or 0)
+        grand_total += float(item.grand_total or 0)
+
+    # Pad item list so the table always shows at least 10 rows
+    min_rows   = 10
+    item_count = items.count()
+    empty_rows = range(max(0, min_rows - item_count))
+
+    context = {
+        "sales_return": sales_return,
+        "items": items,
+        "empty_rows": empty_rows,
+
+        # Totals
+        "subtotal":    subtotal,
+        "cgst":        total_cgst,
+        "sgst":        total_sgst,
+        "igst":        total_igst,
+        "grand_total": grand_total,
+
+        # Amount in words
+        "cgst_words":  amount_to_words(total_cgst),
+        "sgst_words":  amount_to_words(total_sgst),
+        "total_words": amount_to_words(grand_total),
+
+        # Company / party details – populate from your Party/Settings model
+        # Replace the values below with actual lookups as needed.
+        "company_gstin": "27AAMFS1149Q1ZH",
+        "company_pan":   "AAMFS1149Q",
+        "party_gstin":   getattr(sales_return, 'party_gstin', ''),
+        "party_address": getattr(sales_return, 'party_address', ''),
+        "party_state_code": getattr(sales_return, 'party_state_code', '27'),
+        "party_pan":     getattr(sales_return, 'party_pan', 'NA'),
+    }
+
+    template     = get_template("Sales/salesreturn.html")
+    html_content = template.render(context)
+
+    pdf_file = HTML(
+        string=html_content,
+        base_url=request.build_absolute_uri()
+    ).write_pdf()
+
+    response = HttpResponse(pdf_file, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="sales_return_{pk}.pdf"'
+    return response
+
+
+
+
+# def generate_salesreturn_pdf(request, pk):
+#     sales_return = get_object_or_404(Newgstsalesreturn, pk=pk)
+#     items = sales_return.items.all()
+
+#     subtotal = 0
+#     total_cgst = 0
+#     total_sgst = 0
+#     grand_total = 0
+
+#     for item in items:
+
+#         item.basic_total = float(item.return_qty or 0) * float(item.rate or 0)
+
+#         subtotal += float(item.subtotal or 0)
+#         total_cgst += float(item.cgst_amt or 0)
+#         total_sgst += float(item.sgst_amt or 0)
+#         grand_total += float(item.grand_total or 0)
+
+
+#     context = {
+#         "sales_return": sales_return,
+#         "items": items,
+#         "subtotal": subtotal,
+#         "cgst": total_cgst,
+#         "sgst": total_sgst,
+#         "grand_total": grand_total,
+
+#     }
+#     template = get_template("Sales/salesreturn.html")
+#     html_content = template.render(context)
+#     pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf()
+
+
+#     response = HttpResponse(pdf_file, content_type="application/pdf")
+
+#     response["Content-Disposition"] = f'inline; filename="sales_return_{pk}.pdf"'
+
+
+#     return response

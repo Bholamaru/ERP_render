@@ -30,3 +30,20 @@ def create_challan_no():
 
     # only raise after all 9999 numbers are used
     raise ValueError("No available challan number left for the current year range.")
+
+
+
+from datetime import datetime
+from .models import JobworkInwardChallan
+
+def create_jobwork_challan_no():
+    current_year = datetime.now().year % 100
+    next_year = (datetime.now().year + 1) % 100
+    prefix = f"{current_year:02d}{next_year:02d}"
+
+    for counter in range(1, 10000):
+        inward_f4_no = f"{prefix}{counter:05d}"
+        if not JobworkInwardChallan.objects.filter(InwardF4No=inward_f4_no).exists():
+            return inward_f4_no
+
+    raise ValueError("No available challan number left for the current year range.")

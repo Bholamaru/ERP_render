@@ -94,4 +94,7 @@ urlpatterns = [
     path("grn/edit/<int:id>/", EditGrnGenralDetailAPI.as_view(),name='PurchaseGrn-Edit'),
     path("grn/delete/<int:id>/", DeleteGrnGenralDetailAPI.as_view(), name='purchaseGrn-delete'),
 
+
+    path('jobwork-challan-no/', GenerateJobworkInwardChallanNumber.as_view(),name='generate_jobwork_inward_challan_no'),
+
 ]

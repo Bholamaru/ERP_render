@@ -260,6 +260,8 @@ class Job_Work(models.Model):
 
     def __str__(self):
         return f"{self.InwardF4No} - {self.InwardF4No}"
+
+    
     
 # Store Module:- SubCon GRN: Vendor Scrap Inward
 class VendorScrap(models.Model):
@@ -282,6 +284,8 @@ class VendorScrap(models.Model):
 
     def __str__(self):
         return f"{self.InWardNo} - {self.InWardNo}"
+
+
 
 # Store Module:- Material Issue Challan
 class MaterialIssue(models.Model):

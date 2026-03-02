@@ -4065,3 +4065,35 @@ class DeleteGrnGenralDetailAPI(APIView):
 
         grn.delete()
         return Response({"message": "GRN deleted successfully"}, status=status.HTTP_200_OK)
+
+
+
+
+from .utils import create_jobwork_challan_no
+class GenerateJobworkInwardChallanNumber(APIView):
+    
+    def get(self, request):
+        try:
+            inward_f4_no = create_jobwork_challan_no()
+            return Response(
+                {
+                    "InwardF4No": inward_f4_no,
+                    "message": "Jobwork Inward Challan Number generated successfully"
+                },
+                status=status.HTTP_200_OK
+            )
+        except ValueError as e:
+            return Response(
+                {
+                    "error": str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    "error": f"Unexpected error: {str(e)}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

@@ -4097,3 +4097,64 @@ class GenerateJobworkInwardChallanNumber(APIView):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+
+# def generate_jobwork_inward_challan_pdf(request, pk):
+    
+#     challan = get_object_or_404(JobworkInwardChallan, pk=pk)
+    
+#     items = JobworkInwardChallanTable.objects.filter(
+#         JobworkInwardChallanDetail=challan
+#     )
+
+#     template = get_template('jobwork_inward_challan.html')
+    
+#     html_content = template.render({
+#         'challan': challan,
+#         'items': items,
+#     })
+
+#     pdf_file = HTML(string=html_content).write_pdf()
+
+#     response = HttpResponse(pdf_file, content_type='application/pdf')
+#     response['Content-Disposition'] = (
+#         f'inline; filename="JobworkInwardChallan_{challan.NO or pk}.pdf"'
+#     )
+
+#     return response
+
+
+def generate_jobwork_inward_challan_pdf(request, pk):
+    
+    challan = get_object_or_404(JobworkInwardChallan, pk=pk)
+    items = challan.JobworkInwardChallanTable.all()
+
+    # Split ItemCode into parts
+    for item in items:
+        if item.ItemCode:
+            parts = [p.strip() for p in item.ItemCode.split("-")]
+            
+            item.inward_part_code = parts[0] if len(parts) > 0 else ""
+            item.item_description = parts[1] if len(parts) > 1 else ""
+            item.final_part_code = parts[2] if len(parts) > 2 else ""
+        else:
+            item.inward_part_code = ""
+            item.item_description = ""
+            item.final_part_code = ""
+
+    template = get_template('jobwork_inward_challan.html')
+    
+    html_content = template.render({
+        'challan': challan,
+        'items': items,
+    })
+
+    pdf_file = HTML(string=html_content).write_pdf()
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = (
+        f'inline; filename="JobworkInwardChallan_{challan.NO or pk}.pdf"'
+    )
+
+    return response

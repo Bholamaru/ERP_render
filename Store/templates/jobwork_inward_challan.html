@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+        }
+
+        .container {
+            width: 95%;
+            margin: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .header h2 {
+            margin: 0;
+        }
+
+        .header p {
+            margin: 2px 0;
+        }
+
+        .title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-top: 10px;
+            border-top: 1px solid black;
+            padding-top: 5px;
+        }
+
+        .details {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .left-section {
+            float: left;
+            width: 60%;
+        }
+
+        .right-section {
+            float: right;
+            width: 38%;
+        }
+
+        .right-section p {
+            margin: 4px 0;
+        }
+
+        .clearfix {
+            clear: both;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 6px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #e6e6e6;
+        }
+
+        .remark {
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Company Header -->
+    <div class="header">
+        <h2>SHARP ENGINEERS</h2>
+        <p>A-31 MIDC WALUJ 431136</p>
+    </div>
+
+    <div class="title">JOBWORK GRN</div>
+
+    <!-- Party + Inward Details -->
+    <div class="details">
+
+        <div class="left-section">
+            <p><strong>{{ challan.Customer }}</strong></p>
+            <p>{{ challan.Plant }}</p>
+        </div>
+
+        <div class="right-section">
+            <p><strong>Inward No :</strong> {{ challan.NO }}</p>
+            <p><strong>Inward Date :</strong> {{ challan.InwardDate }}</p>
+            <p><strong>Challan No :</strong> {{ challan.ChallanNo }}</p>
+            <p><strong>Challan Date :</strong> {{ challan.ChallanDate }}</p>
+        </div>
+
+        <div class="clearfix"></div>
+
+    </div>
+
+    <!-- Item Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>Sr.</th>
+                <th>Item No</th>
+                <th>Inward Part Code</th>
+                <th>Item Description</th>
+                <th>Heat Code</th>
+                <th>Cust. Heat Code</th>
+                <th>Qty | Unit</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.ItemCode }}</td>
+                <td>{{ item.inward_part_code }}</td>
+                <td>{{ item.item_description }}</td>
+                <td>{{ item.HeatNo|default:"-" }}</td>
+                <td>{{ item.CustHeatNo|default:"-" }}</td>
+                <td>{{ item.GRNQty }} NOS</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Remark -->
+    <div class="remark">
+        <strong>Remark :</strong> {{ challan.Remark }}
+    </div>
+
+</div>
+
+</body>
+</html>

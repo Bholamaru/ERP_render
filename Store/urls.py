@@ -96,5 +96,6 @@ urlpatterns = [
 
 
     path('jobwork-challan-no/', GenerateJobworkInwardChallanNumber.as_view(),name='generate_jobwork_inward_challan_no'),
+    path('jobwork-inward-challan-pdf/<int:pk>/', views.generate_jobwork_inward_challan_pdf, name='jobwork_inward_challan_pdf'),
 
 ]

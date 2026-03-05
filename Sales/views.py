@@ -1382,6 +1382,9 @@ def generate_salesreturn_pdf(request, pk):
     items = sales_return.items.all()
 
     subtotal     = 0.0
+    total_cgst_percent = 0.0
+    total_sgst_percent = 0.0
+    total_igst_percent = 0.0
     total_cgst   = 0.0
     total_sgst   = 0.0
     total_igst   = 0.0
@@ -1389,6 +1392,9 @@ def generate_salesreturn_pdf(request, pk):
 
     for item in items:
         subtotal    += float(item.subtotal    or 0)
+        total_cgst_percent += float(item.cgst or 0)
+        total_sgst_percent += float(item.sgst or 0)
+        total_igst_percent += float(item.igst or 0)
         total_cgst  += float(item.cgst_amt   or 0)
         total_sgst  += float(item.sgst_amt   or 0)
         total_igst  += float(item.igst_amt   or 0)
@@ -1406,6 +1412,9 @@ def generate_salesreturn_pdf(request, pk):
 
         # Totals
         "subtotal":    subtotal,
+         "cgst_percent": total_cgst_percent,
+         "sgst_percent": total_sgst_percent,
+         "igst_percent": total_igst_percent,
         "cgst":        total_cgst,
         "sgst":        total_sgst,
         "igst":        total_igst,
@@ -1480,3 +1489,27 @@ def generate_salesreturn_pdf(request, pk):
 
 
 #     return response
+
+
+
+class GetNewgstsalesreturn(APIView):
+    def get(self, request):
+        queryset = Newgstsalesreturn.objects.prefetch_related("items").all()
+
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        cust_name = request.query_params.get('cust_name')
+
+        # Date Filter (Flexible)
+        if start_date:
+            queryset = queryset.filter(sales_return_date__gte=start_date)
+
+        if end_date:
+            queryset = queryset.filter(sales_return_date__lte=end_date)
+
+        # Customer Filter
+        if cust_name:
+            queryset = queryset.filter(cust_name__icontains=cust_name)
+
+        serializer = NewgstsalesreturnSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

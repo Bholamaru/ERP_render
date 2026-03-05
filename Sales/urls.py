@@ -71,5 +71,6 @@ urlpatterns=router.urls+[
     path("finish-op-heat-wise/",FinishOpHeatWiseProd.as_view(),name="finish-op-heat-wise"),
 
     path("sales-return-pdf/<int:pk>/", generate_salesreturn_pdf, name="generate_salesreturn_pdf"),
+    path("get/sales-return/" ,GetNewgstsalesreturn.as_view(), name='Get-Sales-retun-data-with-datewise'),
 
 ]

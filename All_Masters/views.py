@@ -2212,7 +2212,13 @@ class BOMItemByPartCodeView(APIView):
 
             grouped_data[f"{item.Part_Code} - {item.Name_Description} - {item.part_no}"] = {
                 "item_id": item.id,
+                "part_no": item.part_no,
+                "Name_Description": item.Name_Description,
+                "Part_Code": item.Part_Code,
+                "Auth": item.is_verified,
+                "User": item.created_by.username if item.created_by else None,
                 "bom_items": serializer.data
+                
              }
 
         if not grouped_data:
